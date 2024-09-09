@@ -307,7 +307,6 @@ int main(int argc, char** argv) {
 
     // close and free the pointer
     fclose(fptr);
-    free(fptr);
 
     int pc = 0;
 
