@@ -50,8 +50,14 @@ void Emulate8080p(State8080* state) {
                    state -> c = state -> a;
 
                    break;
+        case 0x03:
+                   UnimplementedInstruction(state);
+                   break;
+
     }
 
     // the opcode counts as one byte, so we always increment the program counter atleast by one
     state -> pc += 1;
 }
+
+
