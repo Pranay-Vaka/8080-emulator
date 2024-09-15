@@ -7,7 +7,7 @@ typedef struct ConditionCodes {
     uint8_t s:1;
     uint8_t p:1;
     uint8_t cy:1;
-    uint8_t ac:1;
+    uint8_t ac:1; // space invaders doesn't use this flag
     uint8_t pad:3;
 } ConditionCodes;
 
