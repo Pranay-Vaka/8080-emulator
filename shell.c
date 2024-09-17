@@ -34,6 +34,19 @@ void UnimplementedInstruction(State8080* state) {
     exit(1);
 }
 
+// returns 1 if there is a carry and returns 0 if there isn't
+uint8_t carry(uint8_t answer) {
+    return (answer > 0xff);
+}
+
+// will make a word (16 bytes) from two 8 byte pairs
+uint16_t makeWord(uint8_t a, uint8_t b) {
+    uint16_t result = (a << 7) | b;
+    return result;
+}
+
+
+
 void Emulate8080p(State8080* state) {
     unsigned char* opcode = &(state -> memory[state->pc]); // the opcode is indicated by the program counter's index in memory.
 
