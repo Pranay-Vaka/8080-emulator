@@ -40,7 +40,7 @@ uint8_t carry(uint8_t answer) {
 }
 
 
-// MAKE WORD -- This section is anything relating to the creation of a word (16 bytes) from two 8 byte pairs
+// MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
 
 // will make a word
 uint16_t makeWord(uint8_t a, uint8_t b) {
@@ -48,11 +48,37 @@ uint16_t makeWord(uint8_t a, uint8_t b) {
     return result;
 }
 
-
 // makes the values in register h and l into a word
 uint16_t makeWordhl(State8080 *state) {
     return makeWord(state->h, state->l);
 }
+
+// makes the values in register b and c into a word
+uint16_t makeWordbc(State8080 *state) {
+    return makeWord(state->b, state->c);
+}
+
+
+
+// BREAK WORD -- Breaking the 2 byte word back into a pair of bytes
+
+void breakWord(uint8_t *a, uint8_t *b, uint16_t word) {
+    *a = (word >> 8) & 0xff;
+    *b = word & 0xff;
+}
+
+// breaks the word into two bytes stored in h and l respectively
+void breakWordhl(State8080 *state, uint16_t word) {
+    breakWord(&state->h, &state->l,  word);
+}
+
+// breaks the word into two bytes stored in b and c respectively
+void breakWordbc(State8080 *state, uint16_t word) {
+    breakWord(&state->b, &state->c,  word);
+}
+
+
+
 
 
 
