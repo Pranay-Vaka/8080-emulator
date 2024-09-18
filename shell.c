@@ -34,9 +34,15 @@ void UnimplementedInstruction(State8080* state) {
     exit(1);
 }
 
+// FLAGS
+
+uint8_t checkZero(uint16_t result) {
+
+}
+
 // returns 1 if there is a carry and returns 0 if there isn't
-uint8_t carry(uint8_t answer) {
-    return (answer > 0xff);
+uint8_t checkCarry(uint8_t result) {
+    return (result > 0xff);
 }
 
 
@@ -58,6 +64,11 @@ uint16_t makeWordbc(State8080 *state) {
     return makeWord(state->b, state->c);
 }
 
+// makes the values in register d and e into a word
+uint16_t makeWordde(State8080 *state) {
+    return makeWord(state->d, state->e);
+}
+
 
 
 // BREAK WORD -- Breaking the 2 byte word back into a pair of bytes
@@ -77,10 +88,10 @@ void breakWordbc(State8080 *state, uint16_t word) {
     breakWord(&state->b, &state->c,  word);
 }
 
-
-
-
-
+// breaks the word into two bytes stored in d and e respectively
+void breakWordde(State8080 *state, uint16_t word) {
+    breakWord(&state->d, &state->e,  word);
+}
 
 
 void Emulate8080p(State8080* state) {
