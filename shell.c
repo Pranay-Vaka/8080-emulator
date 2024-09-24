@@ -34,15 +34,48 @@ void UnimplementedInstruction(State8080* state) {
     exit(1);
 }
 
-// FLAGS
+// FLAGS -- Defines all the flags using bitshifts
 
+
+// CHECK FLAGS -- Checks certain results for the flags
+
+// returns 1 if it is postiive and 0 if negative
+uint8_t checkSign(uint16_t result) {
+    return (result & 0xff) >> 7;
+}
+
+// returns 1 if the result is equal to 0 and 0 if it is 1
 uint8_t checkZero(uint16_t result) {
-
+    return ((result & 0xff) == 0);
 }
 
 // returns 1 if there is a carry and returns 0 if there isn't
-uint8_t checkCarry(uint8_t result) {
+uint8_t checkCarry(uint16_t result) {
     return (result > 0xff);
+}
+
+// returns if there has been a carry from bit 3 into bit 4
+// also known as auxillary carry
+uint8_t checkHalfCarry(uint16_t result){
+
+    uint8_t finalByte = result & 0xff; // gets only the last 8 bits
+    uint8_t cleaned = finalByte & 0b00011111; // makes the first 3 bits 0's
+    return cleaned > 0xf;
+}
+
+// returns 1 if there is even parity and 0 if there is odd parity.
+
+uint8_t checkParity(uint16_t result) {
+
+    uint8_t parity = 0;
+
+    // loops through the only 8 bits
+    for (int i = 0; i < 8; i++) {
+        parity ^= (result & 1);  // XOR the least significant bit with the parity
+        result >>= 1;            // Right shift to check the next bit
+    }
+
+    return !parity;
 }
 
 
