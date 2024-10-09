@@ -29,50 +29,37 @@ typedef struct State8080 {
 
 // this is for any instruction that we have not yet implemented, so that the program does not crash
 void UnimplementedInstruction(State8080* state) {
-    // the pc will increment by 1, so we will decrement now to compenstate for that
+    // the pc will increment by 1, so we will decrement now to compensate for that
     printf("Error: Unimplemented instruction");
     state -> pc -=1;
     exit(1);
 }
 
-// FLAGS -- Constant flags made from bitshifts to manipulate different flags
+// FLAGS -- Constant flags made from bit shifts to manipulate different flags
 
-// bitshifts each of the flags so that it can be logically OR'd to make it 1
+// bit shifts each of the flags so that it can be logically OR'd to make it 1
 #define Z_FLAG (1<<7)
 #define S_FLAG (1<<6)
 #define P_FLAG (1<<5)
 #define CY_FLAG (1<<4)
 #define AC_FLAG (1<<3)
-#define FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true
+#define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG | AC_FLAG) // used for only the increment and decrement functions
+#define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+
 
 // CHECK FLAGS -- Checks certain results for the flags
-
-// returns 1 if it is postiive and 0 if negative
-uint8_t checkSign(uint16_t result) {
-    return (result & 0xff) >> 7;
-}
 
 // returns 1 if the result is equal to 0 and 0 if it is 1
 uint8_t checkZero(uint16_t result) {
     return ((result & 0xff) == 0);
 }
 
-// returns 1 if there is a carry and returns 0 if there isn't
-uint8_t checkCarry(uint16_t result) {
-    return (result > 0xff);
-}
-
-// returns if there has been a carry from bit 3 into bit 4
-// also known as auxillary carry
-uint8_t checkHalfCarry(uint16_t result){
-
-    uint8_t finalByte = result & 0xff; // gets only the last 8 bits
-    uint8_t cleaned = finalByte & 0b00011111; // makes the first 3 bits 0's
-    return cleaned > 0xf;
+// returns 1 if it is positive and 0 if negative
+uint8_t checkSign(uint16_t result) {
+    return (result & 0xff) >> 7;
 }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
-
 uint8_t checkParity(uint16_t result) {
 
     uint8_t parity = 0;
@@ -86,52 +73,88 @@ uint8_t checkParity(uint16_t result) {
     return !parity;
 }
 
+// TODO - Add borrow checker for carry functions
+// returns 1 if there is a carry and returns 0 if there isn't
+uint8_t checkCarry(uint16_t result) {
+    return (result > 0xff); 
+}
+
+// returns if there has been a carry from bit 4 into bit 5
+// also known as half carry
+uint8_t checkAuxillaryCarry(uint16_t result){
+
+    uint8_t finalByte = result & 0xff; // gets only the last 8 bits
+    uint8_t cleaned = finalByte & 0b00011111; // makes the first 3 bits 0's
+    return cleaned > 0xf;
+}
+
+
+// SET FLAGS -- function to set the flags for different groups of opcodes
+
+// sets specific flags depending on the binary value given by flagMask
+void setFlags(State8080* state, uint16_t result, uint8_t flagMask) {
+
+    if (flagMask & Z_FLAG) {
+        state->cc.z = checkZero(result);
+    }
+    if (flagMask & S_FLAG) {
+        state->cc.s = checkSign(result);
+    }
+    if (flagMask & P_FLAG) {
+        state->cc.p = checkParity(result);
+    }
+    if (flagMask & AC_FLAG) {
+        state->cc.ac= checkAuxillaryCarry(result);
+    }
+    if (flagMask & CY_FLAG) {
+        state->cc.cy = checkCarry(result);
+    }
+}
 
 // MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
 
 // will make a word
-uint16_t makeWord(uint8_t a, uint8_t b) {
-    uint16_t result = (a << 7) | b;
-    return result;
+uint16_t make2ByteWord(uint16_t a, uint16_t b) {
+    return (a << 8) | b;
 }
 
 // makes the values in register h and l into a word
-uint16_t makeWordHL(State8080 *state) {
-    return makeWord(state->h, state->l);
+uint16_t make2ByteWordHL(State8080 *state) {
+    return make2ByteWord(state->h, state->l);
 }
 
 // makes the values in register b and c into a word
-uint16_t makeWordBC(State8080 *state) {
-    return makeWord(state->b, state->c);
+uint16_t make2ByteWordBC(State8080 *state) {
+    return make2ByteWord(state->b, state->c);
 }
 
 // makes the values in register d and e into a word
-uint16_t makeWordDE(State8080 *state) {
-    return makeWord(state->d, state->e);
+uint16_t make2ByteWordDE(State8080 *state) {
+    return make2ByteWord(state->d, state->e);
 }
 
 
 
 // BREAK WORD -- Breaking the 2 byte word back into a pair of bytes
 
-void breakWord(uint8_t *a, uint8_t *b, uint16_t word) {
-    *a = (word >> 8) & 0xff;
+void break2ByteWord(uint8_t *a, uint8_t *b, uint16_t word) {
+    *a = (word >> 8);
     *b = word & 0xff;
 }
 
 // breaks the word into two bytes stored in h and l respectively
-void breakWordHL(State8080 *state, uint16_t word) {
-    breakWord(&state->h, &state->l,  word);
+void break2ByteWordHL(State8080 *state, uint16_t word) {
+    break2ByteWord(&state->h, &state->l,  word);
 }
 
 // breaks the word into two bytes stored in b and c respectively
-void breakWordBC(State8080 *state, uint16_t word) {
-    breakWord(&state->b, &state->c,  word);
+void break2ByteWordBC(State8080 *state, uint16_t word) {
+    break2ByteWord(&state->b, &state->c,  word);
 }
 
 // breaks the word into two bytes stored in d and e respectively
-void breakWordDE(State8080 *state, uint16_t word) {
-    breakWord(&state->d, &state->e,  word);
+void break2ByteWordDE(State8080 *state, uint16_t word) {
+    break2ByteWord(&state->d, &state->e,  word);
 }
 
 // returns the byte at a certain index in the memory of the state machine
@@ -146,34 +169,67 @@ void writeByte(State8080* state, uint16_t index, uint8_t value) {
 
 // getters and setters for the registers H and L
 uint16_t getHL(State8080* state) {
-    return readByte(state, makeWordHL(state));
+    return readByte(state, make2ByteWordHL(state));
 }
 
 void setHL(State8080* state, uint8_t value) {
-    uint16_t index = makeWordHL(state);
+    uint16_t index = make2ByteWordHL(state);
     writeByte(state, index, value);
 }
 
 
+// ARITHMETIC GROUP -- instructions for the arithmetic values in the isa
+
+// Joins to 8 bit words, increments it and then splits it up again
+// it is fine if the value overflows, this is expected behaviour.
+void inx(uint8_t *a, uint8_t *b) {
+    uint16_t word = make2ByteWord(*a, *b);
+    word++;
+    break2ByteWord(a, b, word);
+}
+
+void inr(State8080* state, uint8_t *a) {
+    uint16_t answer = *a; // casts to 16 bit number
+    answer++;
+    setFlags(state, *a, INCREMENT_FLAGS);
+    *a = answer & 0xff; // discards the first 8 bits
+}
+
+void dnr(State8080* state, uint8_t *a) {
+    uint16_t answer = *a; // casts to 16 bit number
+    answer--;
+    setFlags(state, *a, INCREMENT_FLAGS);
+    *a = answer & 0xff; // discards the first 8 bits
+}
+
+
+
+// setFlags(state, result, ALL_FLAGS); for all the flags
+// setFlags(state, result, INCREMENT_FLAGS); for all the flags except cy
+
 void Emulate8080p(State8080* state) {
-    unsigned char* opcode = &(state -> memory[state->pc]); // the opcode is indicated by the program counter's index in memory.
+    unsigned char* opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
+                                                             // the program counter is also incremented because every instruction is one byte
 
     switch(*opcode) {
         case 0x00: break;
         case 0x01:
-                   state -> b = opcode[1];
-                   state -> c = opcode[2];
+            state -> b = opcode[1];
+            state -> c = opcode[2];
 
-                   state -> pc += 2;
-                   break;
+            state -> pc += 2;
+            break;
         case 0x02:
-                   state -> b = state -> a;
-                   state -> c = state -> a;
+            state -> b = state -> a;
+            state -> c = state -> a;
 
-                   break;
+            break;
         case 0x03:
-                   UnimplementedInstruction(state);
-                   break;
+            inx(&state -> a, &state -> b);
+        case 0x04:
+            inr(state, &state -> b);
+        case 0x05:
+            dnr(state, &state -> b);
 
 
         // mov opcodes
@@ -371,9 +427,5 @@ void Emulate8080p(State8080* state) {
             state->a = state->a;
             break;
     }
-
-    // the opcode counts as one byte, so we always increment the program counter atleast by one
-    state -> pc += 1;
 }
-
 
