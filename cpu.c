@@ -112,26 +112,10 @@ void setFlags(State8080* state, uint16_t result, uint8_t flagMask) {
 
 // MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
 
-// will make a word
+// will make a 16 bit word
 uint16_t make2ByteWord(uint8_t a, uint8_t b) {
     return (a << 8) | b;
 }
-
-// makes the values in register h and l into a word
-uint16_t make2ByteWordHL(State8080 *state) {
-    return make2ByteWord(state->h, state->l);
-}
-
-// makes the values in register b and c into a word
-uint16_t make2ByteWordBC(State8080 *state) {
-    return make2ByteWord(state->b, state->c);
-}
-
-// makes the values in register d and e into a word
-uint16_t make2ByteWordDE(State8080 *state) {
-    return make2ByteWord(state->d, state->e);
-}
-
 
 
 // BREAK WORD -- Breaking the 2 byte word back into a pair of bytes
