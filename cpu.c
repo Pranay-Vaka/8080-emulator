@@ -204,6 +204,14 @@ void inr(State8080* state, uint8_t *a) {
     *a = answer & 0xff; // discards the first 8 bits
 }
 
+// Joins to 8 bit words, decrements it and then splits it up again
+// it is fine if the value overflows, this is expected behaviour.
+void dnx(uint8_t *a, uint8_t *b) {
+    uint16_t word = make2ByteWord(*a, *b);
+    word--;
+    break2ByteWord(a, b, word);
+}
+
 void dcr(State8080* state, uint8_t *a) {
     uint16_t answer = *a - 1; // casts to 16 bit number
     setFlags(state, *a, INCREMENT_FLAGS);
@@ -266,8 +274,11 @@ void Emulate8080p(State8080* state) {
             dad(state, &state -> b, &state -> c);
 
         case 0x0a:
-            // state -> a = get
+            state -> a = getMem(state, state -> b, state -> c);
+            break;
 
+        case 0x0b:
+            dnx(&state -> a, &state -> b);
 
         // mov opcodes
         case 0x40:
