@@ -169,6 +169,12 @@ uint16_t getMem(State8080* state, uint8_t a, uint8_t b) {
     return readByte(state, make2ByteWord(a, b));
 }
 
+// breaks the 16 bit value in half and assigns each half to the register pair respectfully
+void setPair(State8080* state, uint8_t* a, uint8_t* b, uint16_t value) {
+        *a = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
+        *b = value & 0xff;
+}
+
 // set a value to the address pointed to by a register pair
 void setMem(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
     uint16_t index = make2ByteWord(a, b);
@@ -225,7 +231,13 @@ void dad(State8080* state, uint8_t *a, uint8_t *b) {
     state -> cc.cy = (answer >> 16) | 1;
 }
 
+void lxi(State8080* state, uint8_t* a, uint8_t* b, uint16_t value) {
+    setPair(state, a, b, value);
+}
 
+void stax(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
+    setMem(state, a, b, value);
+}
 
 // setFlags(state, result, ALL_FLAGS); for all the flags
 // setFlags(state, result, INCREMENT_FLAGS); for all the flags except cy
@@ -237,15 +249,11 @@ void Emulate8080p(State8080* state) {
     switch(*opcode) {
         case 0x00: break;
         case 0x01:
-            state -> b = opcode[1];
-            state -> c = opcode[2];
-
-            state -> pc += 2;
+            lxi(state, &state -> b, &state -> c, nextWord(state));
             break;
 
         case 0x02:
-            state -> b = state -> a;
-            state -> c = state -> a;
+            stax(state, state -> b, state -> c, state -> a);
             break;
 
         case 0x03:
@@ -261,10 +269,12 @@ void Emulate8080p(State8080* state) {
             state -> b = nextByte(state);
             break;
 
-        case 0x07:
+        case 0x07: {
             uint8_t leftMost =  state -> a >> 7;
             state -> cc.cy = leftMost;
             state -> a = (state -> a << 1) | leftMost;
+            break;
+        }
 
         case 0x08:
             UnimplementedInstruction(state);
@@ -278,7 +288,93 @@ void Emulate8080p(State8080* state) {
             break;
 
         case 0x0b:
-            dnx(&state -> a, &state -> b);
+            dnx(&state -> b, &state -> b);
+
+        case 0x0c:
+            inr(state, &state -> c);
+
+        case 0x0d:
+            dcr(state, &state -> c);
+
+        case 0x0e:
+            state -> c = nextByte(state);
+            break;
+
+        // rotate instruction
+        // rrc instruction
+        case 0x0f: {
+            // bit mask applied to isolate the right most bit
+            uint8_t rightMost = state -> a & 1;
+            state -> cc.cy = rightMost;
+            // move the bits to the right by 1 and move the rightmost bit to the first bit
+            state -> a = (state -> a >> 1) | rightMost << 7;
+            break;
+        }
+
+        case 0x10:
+            UnimplementedInstruction(state);
+            break;
+
+        case 0x11:
+            lxi(state, &state -> d, &state -> e, nextWord(state));
+            break;
+
+        case 0x12:
+            stax(state, state -> d, state -> e, state -> a);
+            break;
+
+        case 0x13:
+            inx(&state -> d, &state -> e);
+
+        case 0x14:
+            inr(state, &state -> d);
+
+        case 0x15:
+            dcr(state, &state -> d);
+
+        case 0x16:
+            state -> d = nextByte(state);
+            break;
+
+        // ral
+        case 0x17: {
+            uint8_t leftMost = state -> a >> 7;
+            state -> a = (state -> a << 1) | state -> cc.cy << 7;
+            state -> cc.cy = leftMost;
+            break;
+        }
+
+        case 0x18:
+            UnimplementedInstruction(state);
+            break;
+
+        case 0x19:
+            dad(state, &state -> d, &state -> e);
+
+        case 0x1a:
+            state -> a = getMem(state, state -> b, state -> c);
+            break;
+
+        case 0x1b:
+            dnx(&state -> d, &state -> e);
+
+        case 0x1c:
+            inr(state, &state -> e);
+
+        case 0x1d:
+            dcr(state, &state -> e);
+
+        case 0x1e:
+            state -> e = nextByte(state);
+            break;
+
+        //rar
+        case 0x1f: {
+            uint8_t rightMost = state -> a & 1;
+            break;
+        }
+
+
 
         // mov opcodes
         case 0x40:

@@ -1,0 +1,1 @@
+/usr/bin/gcc -g CMakeFiles/8080.dir/cpu.c.o CMakeFiles/8080.dir/disassembler.c.o -o 8080
