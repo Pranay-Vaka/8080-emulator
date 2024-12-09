@@ -11,6 +11,7 @@ typedef struct ConditionCodes {
     uint8_t pad:3;
 } ConditionCodes;
 
+
 typedef struct State8080 {
     uint8_t a;
     uint8_t b;
@@ -30,9 +31,10 @@ typedef struct State8080 {
 // this is for any instruction that we have not yet implemented, so that the program does not crash
 void UnimplementedInstruction(State8080* state) {
     // the pc will increment by 1, so we will decrement now to compensate for that
-    printf("Error: Unimplemented instruction");
+    printf("Error: Unimplemented instruction\n");
+    printf("Program counter: %x\n", state -> pc);
     state -> pc -=1;
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 // FLAGS -- Constant flags made from bit shifts to manipulate different flags
@@ -45,22 +47,24 @@ void UnimplementedInstruction(State8080* state) {
 #define AC_FLAG (1<<3)
 #define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG | AC_FLAG) // used for only the increment and decrement functions
 #define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+#define NON_CARRY_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
 
 
 // CHECK FLAGS -- Checks certain results for the flags
+// this will get rid of the first 8 bits since they could affect the result
 
 // returns 1 if the result is equal to 0 and 0 if it is 1
-uint8_t checkZero(uint16_t result) {
+uint8_t checkZero(uint8_t result) {
     return ((result & 0xff) == 0);
 }
 
 // returns 1 if it is positive and 0 if negative
-uint8_t checkSign(uint16_t result) {
+uint8_t checkSign(uint8_t result) {
     return (result & 0xff) >> 7;
 }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
-uint8_t checkParity(uint16_t result) {
+uint8_t checkParity(uint8_t result) {
 
     uint8_t parity = 0;
 
@@ -78,47 +82,48 @@ uint8_t checkCarry(uint16_t result) {
     return (result > 0xff);
 }
 
+// space invaders does not use this and so is not implemented.
 // returns if there has been a carry from bit 4 into bit 5
 // also known as half carry
-uint8_t checkAuxillaryCarry(uint16_t result){
+uint8_t checkAuxiliaryCarry(uint16_t result){
 
     uint8_t finalByte = result & 0xff; // gets only the last 8 bits
     uint8_t cleaned = finalByte & 0b00011111; // makes the first 3 bits 0's
-    return cleaned > 0xf; // checks if the 4th bit is affected
+    return cleaned > 0x0f; // checks if the 4th bit is affected
 }
 
 
 // SET FLAGS -- function to set the flags for different groups of opcodes
 
 // sets specific flags depending on the binary value given by flagMask
-void setFlags(State8080* state, uint16_t result, uint8_t flagMask) {
+void setFlags(State8080* state, uint16_t value, uint8_t flagMask) {
 
     if (flagMask & Z_FLAG) {
-        state->cc.z = checkZero(result);
+        state->cc.z = checkZero(value);
     }
     if (flagMask & S_FLAG) {
-        state->cc.s = checkSign(result);
+        state->cc.s = checkSign(value);
     }
     if (flagMask & P_FLAG) {
-        state->cc.p = checkParity(result);
+        state->cc.p = checkParity(value);
     }
     if (flagMask & AC_FLAG) {
-        state->cc.ac= checkAuxillaryCarry(result);
+        state->cc.ac= checkAuxiliaryCarry(value);
     }
     if (flagMask & CY_FLAG) {
-        state->cc.cy = checkCarry(result);
+        state->cc.cy = checkCarry(value);
     }
 }
 
 // MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
 
 // will make a 16 bit word
-uint16_t make2ByteWord(uint8_t a, uint8_t b) {
-    return (a << 8) | b;
+uint16_t make2ByteWord(uint8_t high, uint8_t low) {
+    return (high << 8) | low;
 }
 
 
-// BREAK WORD -- Breaking the 2 byte word back into a pair of bytes
+// BREAK WORD -- Breaking the 2 byte word into a pair of bytes
 
 void break2ByteWord(uint8_t *a, uint8_t *b, uint16_t word) {
     *a = (word >> 8);
@@ -204,24 +209,24 @@ void inx(uint8_t *a, uint8_t *b) {
     break2ByteWord(a, b, word);
 }
 
-void inr(State8080* state, uint8_t *a) {
-    uint16_t answer = *a + 1; // casts to 16 bit number
-    setFlags(state, *a, INCREMENT_FLAGS);
-    *a = answer & 0xff; // discards the first 8 bits
+void inr(State8080* state, uint8_t* a) {
+    uint8_t answer = *a + 1; // casts to 16 bit number
+    setFlags(state, answer, INCREMENT_FLAGS);
+    *a = answer; // discards the first 8 bits
 }
 
 // Joins to 8 bit words, decrements it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void dnx(uint8_t *a, uint8_t *b) {
+void dcx(uint8_t *a, uint8_t *b) {
     uint16_t word = make2ByteWord(*a, *b);
     word--;
     break2ByteWord(a, b, word);
 }
 
 void dcr(State8080* state, uint8_t *a) {
-    uint16_t answer = *a - 1; // casts to 16 bit number
-    setFlags(state, *a, INCREMENT_FLAGS);
-    *a = answer & 0xff; // discards the first 8 bits
+    uint8_t answer = *a - 1; // casts to 16 bit number
+    setFlags(state, answer, INCREMENT_FLAGS);
+    *a = answer; // discards the first 8 bits
 };
 
 // dad opcode that joins two bytes and then adds them to register h and l
@@ -288,7 +293,7 @@ void Emulate8080p(State8080* state) {
             break;
 
         case 0x0b:
-            dnx(&state -> b, &state -> b);
+            dcx(&state -> b, &state -> c);
 
         case 0x0c:
             inr(state, &state -> c);
@@ -356,7 +361,7 @@ void Emulate8080p(State8080* state) {
             break;
 
         case 0x1b:
-            dnx(&state -> d, &state -> e);
+            dcx(&state -> d, &state -> e);
 
         case 0x1c:
             inr(state, &state -> e);
@@ -371,9 +376,51 @@ void Emulate8080p(State8080* state) {
         //rar
         case 0x1f: {
             uint8_t rightMost = state -> a & 1;
+            state -> a = (state -> a >> 1) | (state -> cc.cy << 7);
+            state -> cc.cy = rightMost;
             break;
         }
 
+        case 0x20:
+            UnimplementedInstruction(state);
+            break;
+
+
+        case 0x21:
+            lxi(state, &state -> h, &state -> l, nextWord(state));
+            break;
+
+        case 0x22:
+            stax(state, state -> h, state -> l, state -> a);
+            break;
+
+        case 0x23:
+            inx(&state -> a, &state -> h);
+
+        case 0x24:
+            inr(state, &state -> h);
+
+        case 0x25:
+            dcr(state, &state -> h);
+
+        case 0x26:
+            state -> h = nextByte(state);
+            break;
+
+        //daa
+        // space invaders does not use the daa instruction
+        case 0x27:
+            // lower nibble adjustment
+            if (((state -> a & 0xf) > 9) || state -> cc.ac == 1) {
+                state -> a = state -> a + 6;
+            }
+
+            // higher nibble adjustment
+            uint8_t higherNibble = (state -> a & 0x0f) >> 4;
+            if ((higherNibble > 9) || (state -> cc.cy == 1)) {
+                state -> a = state -> a + 1;
+            }
+            break;
 
 
         // mov opcodes
