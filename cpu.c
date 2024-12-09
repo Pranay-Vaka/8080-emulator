@@ -619,4 +619,3 @@ void Emulate8080p(State8080* state) {
             break;
     }
 }
-
