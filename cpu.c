@@ -244,7 +244,10 @@ void stax(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
     setMem(state, a, b, value);
 }
 
-void lhdl(State8080* state);
+void lhld(State8080* state, uint16_t address) {
+    state -> l = readByte(state, address);
+    state -> h = readByte(state, address + 1);
+}
 
 // setFlags(state, result, ALL_FLAGS); for all the flags
 // setFlags(state, result, INCREMENT_FLAGS); for all the flags except cy
@@ -428,6 +431,9 @@ void Emulate8080p(State8080* state) {
 
         case 0x29:
             dad(state, &state -> h, &state -> l);
+
+        case 0x2a:
+            lhld(state, )
 
 
 
