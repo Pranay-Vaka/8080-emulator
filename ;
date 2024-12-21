@@ -244,8 +244,6 @@ void stax(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
     setMem(state, a, b, value);
 }
 
-void lhdl(State8080* state);
-
 // setFlags(state, result, ALL_FLAGS); for all the flags
 // setFlags(state, result, INCREMENT_FLAGS); for all the flags except cy
 
@@ -427,8 +425,7 @@ void Emulate8080p(State8080* state) {
             UnimplementedInstruction(state);
 
         case 0x29:
-            dad(state, &state -> h, &state -> l);
-
+            dad(state, state -> h, state -> l);
 
 
         // mov opcodes
