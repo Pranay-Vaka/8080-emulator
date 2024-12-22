@@ -245,7 +245,9 @@ void stax(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
 }
 
 void lhld(State8080* state, uint16_t address) {
+    // stores the data in the address to register l
     state -> l = readByte(state, address);
+    // stores the data in the address + 1 to register h
     state -> h = readByte(state, address + 1);
 }
 
@@ -433,8 +435,29 @@ void Emulate8080p(State8080* state) {
             dad(state, &state -> h, &state -> l);
 
         case 0x2a:
-            lhld(state, )
+            {
+            uint16_t address = nextWord(state);
+            lhld(state, address);
+            }
 
+        case 0x2b:
+            dcx(&state -> h, &state -> l);
+
+        case 0x2c:
+            inr(state, &state -> l);
+
+        case 0x2d:
+            dcr(state, &state -> l);
+
+        case 0x2e:
+            state -> l = nextByte(state);
+            break;
+
+        case 0x2f:
+            state -> a = !(state -> a);
+
+        case 0x30:
+            UnimplementedInstruction(state);
 
 
         // mov opcodes
