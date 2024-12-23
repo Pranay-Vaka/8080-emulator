@@ -28,12 +28,13 @@ typedef struct State8080 {
 } State8080;
 
 
-// this is for any instruction that we have not yet implemented, so that the program does not crash
-void UnimplementedInstruction(State8080* state) {
-    // the pc will increment by 1, so we will decrement now to compensate for that
-    printf("Error: Unimplemented instruction\n");
-    printf("Program counter: %x\n", state -> pc);
-    state -> pc -=1;
+// this is for any instruction that we have not yet implemented
+void UnimplementedInstruction(State8080 *state, uint8_t opcode) {
+    // Error messages
+    fprintf(stderr, "Error: Unimplemented instruction 0x%02x encountered\n", opcode);
+    fprintf(stderr, "Program counter: %x\n", state -> pc);
+
+    // Terminates the execution
     exit(EXIT_FAILURE);
 }
 
@@ -96,7 +97,7 @@ uint8_t checkAuxiliaryCarry(uint16_t result){
 // SET FLAGS -- function to set the flags for different groups of opcodes
 
 // sets specific flags depending on the binary value given by flagMask
-void setFlags(State8080* state, uint16_t value, uint8_t flagMask) {
+void setFlags(State8080 *state, uint16_t value, uint8_t flagMask) {
 
     if (flagMask & Z_FLAG) {
         state->cc.z = checkZero(value);
@@ -146,20 +147,20 @@ void break2ByteWordDE(State8080 *state, uint16_t word) {
 }
 
 // returns the byte at a certain index in the memory of the state machine
-uint8_t readByte(State8080* state, uint16_t index) {
+uint8_t readByte(State8080 *state, uint16_t index) {
     return state -> memory[index];
 }
 
 // inserts byte into a certain index in the memory array
-void writeByte(State8080* state, uint16_t index, uint8_t value) {
+void writeByte(State8080 *state, uint16_t index, uint8_t value) {
     state->memory[index] = value;
 }
 
-uint8_t nextByte(State8080* state){
+uint8_t nextByte(State8080 *state){
     return readByte(state, state -> pc++);
 }
 
-uint16_t nextWord(State8080* state) {
+uint16_t nextWord(State8080 *state) {
     uint8_t left = nextByte(state);
     uint8_t right = nextByte(state);
 
@@ -170,25 +171,25 @@ uint16_t nextWord(State8080* state) {
 // getters and setters for register pairs
 
 // get value of the address pointed to by a register pair
-uint16_t getMem(State8080* state, uint8_t a, uint8_t b) {
+uint16_t getMem(State8080 *state, uint8_t a, uint8_t b) {
     return readByte(state, make2ByteWord(a, b));
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void setPair(State8080* state, uint8_t* a, uint8_t* b, uint16_t value) {
+void setPair(State8080 *state, uint8_t *a, uint8_t *b, uint16_t value) {
         *a = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
         *b = value & 0xff;
 }
 
 // set a value to the address pointed to by a register pair
-void setMem(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
+void setMem(State8080 *state, uint8_t a, uint8_t b, uint16_t value) {
     uint16_t index = make2ByteWord(a, b);
     writeByte(state, index, value);
 }
 
 
 // adds values in two registers together and returns the 32 bit result
-uint32_t twoRegAddition(uint8_t* a, uint8_t* b, uint16_t value) {
+uint32_t twoRegAddition(uint8_t *a, uint8_t *b, uint16_t value) {
     uint8_t twoByteWord = make2ByteWord(*a, *b);
     uint32_t result = twoByteWord + value;
 
@@ -209,7 +210,7 @@ void inx(uint8_t *a, uint8_t *b) {
     break2ByteWord(a, b, word);
 }
 
-void inr(State8080* state, uint8_t* a) {
+void inr(State8080 *state, uint8_t *a) {
     uint8_t answer = *a + 1; // casts to 16 bit number
     setFlags(state, answer, INCREMENT_FLAGS);
     *a = answer; // discards the first 8 bits
@@ -223,39 +224,37 @@ void dcx(uint8_t *a, uint8_t *b) {
     break2ByteWord(a, b, word);
 }
 
-void dcr(State8080* state, uint8_t *a) {
+void dcr(State8080 *state, uint8_t *a) {
     uint8_t answer = *a - 1; // casts to 16 bit number
     setFlags(state, answer, INCREMENT_FLAGS);
     *a = answer; // discards the first 8 bits
 };
 
 // dad opcode that joins two bytes and then adds them to register h and l
-void dad(State8080* state, uint8_t *a, uint8_t *b) {
+void dad(State8080 *state, uint8_t *a, uint8_t *b) {
     uint16_t value = make2ByteWord(*a, *b);
     uint32_t answer = twoRegAddition(&state -> h, &state -> l, value);
     state -> cc.cy = (answer >> 16) | 1;
 }
 
-void lxi(State8080* state, uint8_t* a, uint8_t* b, uint16_t value) {
+void lxi(State8080 *state, uint8_t *a, uint8_t *b, uint16_t value) {
     setPair(state, a, b, value);
 }
 
-void stax(State8080* state, uint8_t a, uint8_t b, uint16_t value) {
+void stax(State8080 *state, uint8_t a, uint8_t b, uint16_t value) {
     setMem(state, a, b, value);
 }
 
-void lhld(State8080* state, uint16_t address) {
+void lhld(State8080 *state, uint16_t address) {
     // stores the data in the address to register l
     state -> l = readByte(state, address);
     // stores the data in the address + 1 to register h
     state -> h = readByte(state, address + 1);
 }
 
-// setFlags(state, result, ALL_FLAGS); for all the flags
-// setFlags(state, result, INCREMENT_FLAGS); for all the flags except cy
 
-void Emulate8080p(State8080* state) {
-    unsigned char* opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
+void Emulate(State8080 *state) {
+    unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
 
     switch(*opcode) {
         case 0x00: break;
@@ -288,7 +287,7 @@ void Emulate8080p(State8080* state) {
         }
 
         case 0x08:
-            UnimplementedInstruction(state);
+            UnimplementedInstruction(state, *opcode);
             break;
 
         case 0x09:
@@ -323,7 +322,7 @@ void Emulate8080p(State8080* state) {
         }
 
         case 0x10:
-            UnimplementedInstruction(state);
+            UnimplementedInstruction(state, *opcode);
             break;
 
         case 0x11:
@@ -356,7 +355,7 @@ void Emulate8080p(State8080* state) {
        }
 
         case 0x18:
-            UnimplementedInstruction(state);
+            UnimplementedInstruction(state, *opcode);
             break;
 
         case 0x19:
@@ -388,7 +387,7 @@ void Emulate8080p(State8080* state) {
         }
 
         case 0x20:
-            UnimplementedInstruction(state);
+            UnimplementedInstruction(state, *opcode);
             break;
 
 
@@ -429,7 +428,7 @@ void Emulate8080p(State8080* state) {
             break;
 
         case 0x28:
-            UnimplementedInstruction(state);
+            UnimplementedInstruction(state, *opcode);
 
         case 0x29:
             dad(state, &state -> h, &state -> l);
@@ -457,8 +456,7 @@ void Emulate8080p(State8080* state) {
             state -> a = !(state -> a);
 
         case 0x30:
-            UnimplementedInstruction(state);
-
+            UnimplementedInstruction(state, *opcode);
 
         // mov opcodes
         case 0x40:

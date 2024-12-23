@@ -15,10 +15,9 @@ does not completely suck.
 ## Date: 2024-12-23
 
 ### Issues
-- [ ] Change Emulate8080p to Emulate
-- [ ] Convert all the parameters to foo *bar instead of foo* bar
-- [ ] Use fprintf for the error messages, e.g. for UnimplementedInstruction
-- [ ] Make sure to decrement pc in UnimplementedInstruction and then output the pc
+- [x] Change Emulate8080p to Emulate
+- [x] Convert all the parameters to foo *bar instead of foo* bar
+- [x] Use fprintf for the error messages, e.g. for UnimplementedInstruction
 - [ ] Remove the AC flag for now, as it is not being used for the Space Invaders game. Make a note for
 this so that it can be added later when required
 - [ ] Change make2ByteWord into combineBytesToWord
