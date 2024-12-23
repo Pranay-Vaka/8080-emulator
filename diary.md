@@ -1,4 +1,4 @@
-## Date: 22-12-2024
+## Date: 2024-12-22
 
 These instructions will be put on hiatus
 ### Todos
@@ -12,7 +12,7 @@ in the functions, how the pc is incremented and the difference between addresses
 I will go back, write all the problems, probably raise issues and then refactor the code so that it
 does not completely suck.
 
-## Date: 23-12-2024
+## Date: 2024-12-23
 
 ### Issues
 - [ ] Change Emulate8080p to Emulate
