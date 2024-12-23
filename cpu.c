@@ -46,51 +46,41 @@ void UnimplementedInstruction(State8080 *state, uint8_t opcode) {
 #define P_FLAG (1<<5)
 #define CY_FLAG (1<<4)
 #define AC_FLAG (1<<3)
-#define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG | AC_FLAG) // used for only the increment and decrement functions
-#define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+#define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used for only the increment and decrement functions
+#define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
 #define NON_CARRY_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
 
 
-// CHECK FLAGS -- Checks certain results for the flags
-// this will get rid of the first 8 bits since they could affect the result
+// CHECK FLAGS -- Checks certain values for the flags
+// this will get rid of the first 8 bits since they could affect the value
 
-// returns 1 if the result is equal to 0 and 0 if it is 1
-uint8_t checkZero(uint8_t result) {
-    return ((result & 0xff) == 0);
+// returns 1 if the value is equal to 0 and 0 if it is 1
+uint8_t checkZero(uint8_t value) {
+    return ((value & 0xff) == 0);
 }
 
 // returns 1 if it is positive and 0 if negative
-uint8_t checkSign(uint8_t result) {
-    return (result & 0xff) >> 7;
+uint8_t checkSign(uint8_t value) {
+    return (value & 0xff) >> 7;
 }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
-uint8_t checkParity(uint8_t result) {
+uint8_t checkParity(uint8_t value) {
 
     uint8_t parity = 0;
 
     // loops through the only 8 bits
     for (int i = 0; i < 8; i++) {
-        parity ^= (result & 1);  // XOR the least significant bit with the parity
-        result >>= 1;            // Right shift to check the next bit
+        parity ^= (value & 1);  // XOR the least significant bit with the parity
+        value >>= 1;            // Right shift to check the next bit
     }
 
     return !parity;
 }
 
 // returns 1 if there is a carry and returns 0 if there isn't
-uint8_t checkCarry(uint16_t result) {
-    return (result > 0xff);
-}
-
-// space invaders does not use this and so is not implemented.
-// returns if there has been a carry from bit 4 into bit 5
-// also known as half carry
-uint8_t checkAuxiliaryCarry(uint16_t result){
-
-    uint8_t finalByte = result & 0xff; // gets only the last 8 bits
-    uint8_t cleaned = finalByte & 0b00011111; // makes the first 3 bits 0's
-    return cleaned > 0x0f; // checks if the 4th bit is affected
+uint8_t checkCarry(uint16_t value) {
+    return (value > 0xff);
 }
 
 
@@ -108,9 +98,6 @@ void setFlags(State8080 *state, uint16_t value, uint8_t flagMask) {
     if (flagMask & P_FLAG) {
         state->cc.p = checkParity(value);
     }
-    if (flagMask & AC_FLAG) {
-        state->cc.ac= checkAuxiliaryCarry(value);
-    }
     if (flagMask & CY_FLAG) {
         state->cc.cy = checkCarry(value);
     }
@@ -119,31 +106,16 @@ void setFlags(State8080 *state, uint16_t value, uint8_t flagMask) {
 // MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
 
 // will make a 16 bit word
-uint16_t make2ByteWord(uint8_t high, uint8_t low) {
-    return (high << 8) | low;
+uint16_t combineBytesToWord(uint8_t highByte, uint8_t lowByte) {
+    return (highByte << 8) | lowByte;
 }
 
 
 // BREAK WORD -- Breaking the 2 byte word into a pair of bytes
 
-void break2ByteWord(uint8_t *a, uint8_t *b, uint16_t word) {
-    *a = (word >> 8);
-    *b = word & 0xff;
-}
-
-// breaks the word into two bytes stored in h and l respectively
-void break2ByteWordHL(State8080 *state, uint16_t word) {
-    break2ByteWord(&state->h, &state->l,  word);
-}
-
-// breaks the word into two bytes stored in b and c respectively
-void break2ByteWordBC(State8080 *state, uint16_t word) {
-    break2ByteWord(&state->b, &state->c,  word);
-}
-
-// breaks the word into two bytes stored in d and e respectively
-void break2ByteWordDE(State8080 *state, uint16_t word) {
-    break2ByteWord(&state->d, &state->e,  word);
+void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
+    *highByte = (word >> 8);
+    *lowByte = word & 0xff;
 }
 
 // returns the byte at a certain index in the memory of the state machine
@@ -161,42 +133,42 @@ uint8_t nextByte(State8080 *state){
 }
 
 uint16_t nextWord(State8080 *state) {
-    uint8_t left = nextByte(state);
-    uint8_t right = nextByte(state);
+    uint8_t highByte = nextByte(state);
+    uint8_t lowByte = nextByte(state);
 
-    return make2ByteWord(left, right);
+    return combineBytesToWord(highByte, lowByte);
 }
 
 
 // getters and setters for register pairs
 
 // get value of the address pointed to by a register pair
-uint16_t getMem(State8080 *state, uint8_t a, uint8_t b) {
-    return readByte(state, make2ByteWord(a, b));
+uint16_t getMem(State8080 *state, uint8_t highByte, uint8_t lowByte) {
+    return readByte(state, combineBytesToWord(highByte, lowByte));
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void setPair(State8080 *state, uint8_t *a, uint8_t *b, uint16_t value) {
-        *a = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
-        *b = value & 0xff;
+void setPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+        *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
+        *lowByte = value & 0xff;
 }
 
 // set a value to the address pointed to by a register pair
-void setMem(State8080 *state, uint8_t a, uint8_t b, uint16_t value) {
-    uint16_t index = make2ByteWord(a, b);
+void setMem(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
+    uint16_t index = combineBytesToWord(highByte, lowByte);
     writeByte(state, index, value);
 }
 
 
-// adds values in two registers together and returns the 32 bit result
-uint32_t twoRegAddition(uint8_t *a, uint8_t *b, uint16_t value) {
-    uint8_t twoByteWord = make2ByteWord(*a, *b);
-    uint32_t result = twoByteWord + value;
+// adds values in two registers together and returns the 32 bit value
+uint32_t twoRegAddition(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+    uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
+    value = twoByteWord + value;
 
-    *a = (result & 0xff00) >> 8;
-    *b = (result & 0xff);
+    *highByte = (value & 0xff00) >> 8;
+    *lowByte = (value & 0xff);
 
-    return result;
+    return value;
 }
 
 
@@ -204,45 +176,45 @@ uint32_t twoRegAddition(uint8_t *a, uint8_t *b, uint16_t value) {
 
 // Joins to 8 bit words, increments it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void inx(uint8_t *a, uint8_t *b) {
-    uint16_t word = make2ByteWord(*a, *b);
+void inx(uint8_t *highByte, uint8_t *lowByte) {
+    uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word++;
-    break2ByteWord(a, b, word);
+    splitWordToBytes(highByte, lowByte, word);
 }
 
-void inr(State8080 *state, uint8_t *a) {
-    uint8_t answer = *a + 1; // casts to 16 bit number
-    setFlags(state, answer, INCREMENT_FLAGS);
-    *a = answer; // discards the first 8 bits
+void inr(State8080 *state, uint8_t *value) {
+    uint8_t result = *value + 1; // casts to 16 bit number
+    setFlags(state, result, INCREMENT_FLAGS);
+    *value = result; // discards the first 8 bits
 }
 
 // Joins to 8 bit words, decrements it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void dcx(uint8_t *a, uint8_t *b) {
-    uint16_t word = make2ByteWord(*a, *b);
+void dcx(uint8_t *highByte, uint8_t *lowByte) {
+    uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word--;
-    break2ByteWord(a, b, word);
+    splitWordToBytes(highByte, lowByte, word);
 }
 
-void dcr(State8080 *state, uint8_t *a) {
-    uint8_t answer = *a - 1; // casts to 16 bit number
-    setFlags(state, answer, INCREMENT_FLAGS);
-    *a = answer; // discards the first 8 bits
+void dcr(State8080 *state, uint8_t *value) {
+    uint8_t result = *value - 1; // casts to 16 bit number
+    setFlags(state, result, INCREMENT_FLAGS);
+    *value = result; // discards the first 8 bits
 };
 
 // dad opcode that joins two bytes and then adds them to register h and l
-void dad(State8080 *state, uint8_t *a, uint8_t *b) {
-    uint16_t value = make2ByteWord(*a, *b);
-    uint32_t answer = twoRegAddition(&state -> h, &state -> l, value);
-    state -> cc.cy = (answer >> 16) | 1;
+void dad(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+    uint16_t value = combineBytesToWord(*highByte, *lowByte);
+    uint32_t result = twoRegAddition(&state -> h, &state -> l, value);
+    state -> cc.cy = (result >> 16) | 1;
 }
 
-void lxi(State8080 *state, uint8_t *a, uint8_t *b, uint16_t value) {
-    setPair(state, a, b, value);
+void lxi(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+    setPair(state, highByte, lowByte, value);
 }
 
-void stax(State8080 *state, uint8_t a, uint8_t b, uint16_t value) {
-    setMem(state, a, b, value);
+void stax(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
+    setMem(state, highByte, lowByte, value);
 }
 
 void lhld(State8080 *state, uint16_t address) {

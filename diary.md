@@ -18,13 +18,13 @@ does not completely suck.
 - [x] Change Emulate8080p to Emulate
 - [x] Convert all the parameters to foo *bar instead of foo* bar
 - [x] Use fprintf for the error messages, e.g. for UnimplementedInstruction
-- [ ] Remove the AC flag for now, as it is not being used for the Space Invaders game. Make a note for
+- [x] Remove the AC flag for now, as it is not being used for the Space Invaders game. Make a note for
 this so that it can be added later when required
-- [ ] Change make2ByteWord into combineBytesToWord
-- [ ] Change break2ByteWord into splitWordToBytes
-- [ ] For all functions that contain a and b for parameters or something similar like left and right, convert them into
+- [x] Change make2ByteWord into combineBytesToWord
+- [x] Change break2ByteWord into splitWordToBytes
+- [x] For all functions that contain a and b for parameters or something similar like left and right, convert them into
 highByte and lowByte
-- [ ] Get rid of the repeated break2ByteWord like break2ByteWordHL and make sure to replace those
+- [x] Get rid of the repeated break2ByteWord like break2ByteWordHL and make sure to replace those
 functions with break2ByteWord
 - [ ] Change getMem into readMemoryAtRegPair, setPair to writeRegPairFromWord, setMem into
 writeMemoryAtRegPair, twoRegAddition into addToRegPair
