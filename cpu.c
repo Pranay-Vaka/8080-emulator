@@ -353,7 +353,7 @@ void Emulate8080p(State8080* state) {
             state -> a = (state -> a << 1) | state -> cc.cy << 7;
             state -> cc.cy = leftMost;
             break;
-        }
+       }
 
         case 0x18:
             UnimplementedInstruction(state);
