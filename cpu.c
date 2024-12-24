@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define MEMORY_SIZE 65536
+#define MAX_MEMORY_SIZE 65535
+
 typedef struct ConditionCodes {
     uint8_t z:1;
     uint8_t s:1;
@@ -110,7 +113,6 @@ uint16_t combineBytesToWord(uint8_t highByte, uint8_t lowByte) {
     return (highByte << 8) | lowByte;
 }
 
-
 // BREAK WORD -- Breaking the 2 byte word into a pair of bytes
 
 void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
@@ -120,11 +122,19 @@ void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
 
 // returns the byte at a certain index in the memory of the state machine
 uint8_t readByte(State8080 *state, uint16_t index) {
+    if (index >= MAX_MEMORY_SIZE) {
+        fprintf(stderr, "Memory read out of bounds: 0x%04X\n", index);
+        exit(EXIT_FAILURE);
+    }
     return state -> memory[index];
 }
 
 // inserts byte into a certain index in the memory array
 void writeByte(State8080 *state, uint16_t index, uint8_t value) {
+    if (index >= MAX_MEMORY_SIZE) {
+        fprintf(stderr, "Memory write is out of bounds: 0x%04X\n", index);
+        exit(EXIT_FAILURE);
+    }
     state->memory[index] = value;
 }
 
@@ -143,25 +153,25 @@ uint16_t nextWord(State8080 *state) {
 // getters and setters for register pairs
 
 // get value of the address pointed to by a register pair
-uint16_t getMem(State8080 *state, uint8_t highByte, uint8_t lowByte) {
+uint16_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte) {
     return readByte(state, combineBytesToWord(highByte, lowByte));
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void setPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+void writeRegPairFromWord(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
         *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
         *lowByte = value & 0xff;
 }
 
 // set a value to the address pointed to by a register pair
-void setMem(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
+void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
     uint16_t index = combineBytesToWord(highByte, lowByte);
     writeByte(state, index, value);
 }
 
 
 // adds values in two registers together and returns the 32 bit value
-uint32_t twoRegAddition(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+uint32_t addToRegPair(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
     value = twoByteWord + value;
 
@@ -183,7 +193,7 @@ void inx(uint8_t *highByte, uint8_t *lowByte) {
 }
 
 void inr(State8080 *state, uint8_t *value) {
-    uint8_t result = *value + 1; // casts to 16 bit number
+    uint8_t result = *value + 1;
     setFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
 }
@@ -197,7 +207,7 @@ void dcx(uint8_t *highByte, uint8_t *lowByte) {
 }
 
 void dcr(State8080 *state, uint8_t *value) {
-    uint8_t result = *value - 1; // casts to 16 bit number
+    uint8_t result = *value - 1;
     setFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
 };
@@ -205,17 +215,14 @@ void dcr(State8080 *state, uint8_t *value) {
 // dad opcode that joins two bytes and then adds them to register h and l
 void dad(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t value = combineBytesToWord(*highByte, *lowByte);
-    uint32_t result = twoRegAddition(&state -> h, &state -> l, value);
-    state -> cc.cy = (result >> 16) | 1;
+    uint32_t result = addToRegPair(&state -> h, &state -> l, value);
+    state -> cc.cy = (result >> 16) & 1;
 }
 
 void lxi(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
-    setPair(state, highByte, lowByte, value);
+    writeRegPairFromWord(state, highByte, lowByte, value);
 }
 
-void stax(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
-    setMem(state, highByte, lowByte, value);
-}
 
 void lhld(State8080 *state, uint16_t address) {
     // stores the data in the address to register l
@@ -235,17 +242,20 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x02:
-            stax(state, state -> b, state -> c, state -> a);
+            writeMemoryAtRegPair(state, state -> b, state -> c, state -> a);
             break;
 
         case 0x03:
             inx(&state -> a, &state -> b);
+            break;
 
         case 0x04:
             inr(state, &state -> b);
+            break;
 
         case 0x05:
             dcr(state, &state -> b);
+            break;
 
         case 0x06:
             state -> b = nextByte(state);
@@ -264,19 +274,23 @@ void Emulate(State8080 *state) {
 
         case 0x09:
             dad(state, &state -> b, &state -> c);
+            break;
 
         case 0x0a:
-            state -> a = getMem(state, state -> b, state -> c);
+            state -> a = readMemoryAtRegPair(state, state -> b, state -> c);
             break;
 
         case 0x0b:
             dcx(&state -> b, &state -> c);
+            break;
 
         case 0x0c:
             inr(state, &state -> c);
+            break;
 
         case 0x0d:
             dcr(state, &state -> c);
+            break;
 
         case 0x0e:
             state -> c = nextByte(state);
@@ -302,17 +316,20 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x12:
-            stax(state, state -> d, state -> e, state -> a);
+            writeMemoryAtRegPair(state, state -> d, state -> e, state -> a);
             break;
 
         case 0x13:
             inx(&state -> d, &state -> e);
+            break;
 
         case 0x14:
             inr(state, &state -> d);
+            break;
 
         case 0x15:
             dcr(state, &state -> d);
+            break;
 
         case 0x16:
             state -> d = nextByte(state);
@@ -332,19 +349,23 @@ void Emulate(State8080 *state) {
 
         case 0x19:
             dad(state, &state -> d, &state -> e);
+            break;
 
         case 0x1a:
-            state -> a = getMem(state, state -> b, state -> c);
+            state -> a = readMemoryAtRegPair(state, state -> b, state -> c);
             break;
 
         case 0x1b:
             dcx(&state -> d, &state -> e);
+            break;
 
         case 0x1c:
             inr(state, &state -> e);
+            break;
 
         case 0x1d:
             dcr(state, &state -> e);
+            break;
 
         case 0x1e:
             state -> e = nextByte(state);
@@ -368,17 +389,20 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x22:
-            stax(state, state -> h, state -> l, state -> a);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> a);
             break;
 
         case 0x23:
             inx(&state -> a, &state -> h);
+            break;
 
         case 0x24:
             inr(state, &state -> h);
+            break;
 
         case 0x25:
             dcr(state, &state -> h);
+            break;
 
         case 0x26:
             state -> h = nextByte(state);
@@ -401,24 +425,30 @@ void Emulate(State8080 *state) {
 
         case 0x28:
             UnimplementedInstruction(state, *opcode);
+            break;
 
         case 0x29:
             dad(state, &state -> h, &state -> l);
+            break;
 
         case 0x2a:
             {
             uint16_t address = nextWord(state);
             lhld(state, address);
             }
+            break;
 
         case 0x2b:
             dcx(&state -> h, &state -> l);
+            break;
 
         case 0x2c:
             inr(state, &state -> l);
+            break;
 
         case 0x2d:
             dcr(state, &state -> l);
+            break;
 
         case 0x2e:
             state -> l = nextByte(state);
@@ -426,6 +456,7 @@ void Emulate(State8080 *state) {
 
         case 0x2f:
             state -> a = !(state -> a);
+            break;
 
         case 0x30:
             UnimplementedInstruction(state, *opcode);
@@ -450,7 +481,7 @@ void Emulate(State8080 *state) {
             state->b = state->l;
             break;
         case 0x46:
-            state->b = getMem(state, state -> h, state -> l);
+            state->b = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x47:
             state->b = state->a;
@@ -474,7 +505,7 @@ void Emulate(State8080 *state) {
             state->c = state->l;
             break;
         case 0x4e:
-            state->c = getMem(state, state -> h, state -> l);
+            state->c = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x4f:
             state->c = state->a;
@@ -498,7 +529,7 @@ void Emulate(State8080 *state) {
             state->d = state->l;
             break;
         case 0x56:
-            state->d = getMem(state, state -> h, state -> l);
+            state->d = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x57:
             state->d = state->a;
@@ -522,7 +553,7 @@ void Emulate(State8080 *state) {
             state->e = state->l;
             break;
         case 0x5e:
-            state->e = getMem(state, state -> h, state -> l);
+            state->e = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x5f:
             state->e = state->a;
@@ -546,7 +577,7 @@ void Emulate(State8080 *state) {
             state->h = state->l;
             break;
         case 0x66:
-            state->h = getMem(state, state -> h, state -> l);
+            state->h = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x67:
             state->h = state->a;
@@ -570,35 +601,35 @@ void Emulate(State8080 *state) {
             state->l = state->l;
             break;
         case 0x6e:
-            state->l = getMem(state, state -> h, state -> l);
+            state->l = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x6f:
             state->l = state->a;
             break;
         case 0x70:
-            setMem(state, state -> h, state -> l, state -> b);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> b);
             break;
         case 0x71:
-            setMem(state, state -> h, state -> l, state -> c);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> c);
             break;
         case 0x72:
-            setMem(state, state -> h, state -> l, state -> d);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> d);
             break;
         case 0x73:
-            setMem(state, state -> h, state -> l, state -> e);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> e);
             break;
         case 0x74:
-            setMem(state, state -> h, state -> l, state -> h);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> h);
             break;
         case 0x75:
-            setMem(state, state -> h, state -> l, state -> l);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> l);
             break;
         case 0x76:
             printf("Halting emulation");
-            exit(0);
+            exit(EXIT_SUCCESS);
             break;
         case 0x77:
-            setMem(state, state -> h, state -> l, state -> a);
+            writeMemoryAtRegPair(state, state -> h, state -> l, state -> a);
             break;
         case 0x78:
             state->a = state->b;
@@ -619,10 +650,13 @@ void Emulate(State8080 *state) {
             state->a = state->l;
             break;
         case 0x7e:
-            state->a = getMem(state, state -> h, state -> l);
+            state->a = readMemoryAtRegPair(state, state -> h, state -> l);
             break;
         case 0x7f:
             state->a = state->a;
             break;
+        default:
+            fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
+            exit(EXIT_FAILURE);
     }
 }

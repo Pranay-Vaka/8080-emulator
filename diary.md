@@ -26,13 +26,20 @@ this so that it can be added later when required
 highByte and lowByte
 - [x] Get rid of the repeated break2ByteWord like break2ByteWordHL and make sure to replace those
 functions with break2ByteWord
-- [ ] Change getMem into readMemoryAtRegPair, setPair to writeRegPairFromWord, setMem into
+- [x] Change getMem into readMemoryAtRegPair, setPair to writeRegPairFromWord, setMem into
 writeMemoryAtRegPair, twoRegAddition into addToRegPair
-- [ ] Add a check for INCREMENT_FLAGS in inx and dcx
-- [ ] Delete the comment for inr and dnr that says its casted to 16 bit number
-- [ ] Change the dad fucntion (answer >> 16) | 1 to (answer >> 16) & 1
-- [ ] Replace stax with setMem(state, a, b, value) changed to the correct function name and arguments
-- [ ] Add breaks in the switch statement to prevent fall through
-- [ ] Lack of default case (Make one for unknown upcode)
-- [ ] Add bounds checking for readByte and writeByte
-- [ ] Remove the decrement for the pc in UnimplementedInstruction
+- [x] Delete the comment for inr and dnr that says its casted to 16 bit number
+- [x] Change the dad fucntion (answer >> 16) | 1 to (answer >> 16) & 1
+- [x] Replace stax with setMem(state, a, b, value) changed to the correct function name and arguments
+- [x] Add breaks in the switch statement to prevent fall through
+- [x] Lack of default case (Make one for unknown upcode)
+- [x] Add bounds checking for readByte and writeByte
+- [x] Remove the decrement for the pc in UnimplementedInstruction
+
+## Date: 2024-12-24
+
+### Thoughts
+Seems like the code isn't as terrible as I thought. I've noted down the features that need to be
+fixed in the 2024-12-23 entry and am working through them one at a time.
+
+Update: All of the issues have been solved and finished
