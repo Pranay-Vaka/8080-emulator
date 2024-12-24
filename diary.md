@@ -15,25 +15,31 @@ does not completely suck.
 ## Date: 2024-12-23
 
 ### Issues
-- [ ] Change Emulate8080p to Emulate
-- [ ] Convert all the parameters to foo *bar instead of foo* bar
-- [ ] Use fprintf for the error messages, e.g. for UnimplementedInstruction
-- [ ] Make sure to decrement pc in UnimplementedInstruction and then output the pc
-- [ ] Remove the AC flag for now, as it is not being used for the Space Invaders game. Make a note for
+- [x] Change Emulate8080p to Emulate
+- [x] Convert all the parameters to foo *bar instead of foo* bar
+- [x] Use fprintf for the error messages, e.g. for UnimplementedInstruction
+- [x] Remove the AC flag for now, as it is not being used for the Space Invaders game. Make a note for
 this so that it can be added later when required
-- [ ] Change make2ByteWord into combineBytesToWord
-- [ ] Change break2ByteWord into splitWordToBytes
-- [ ] For all functions that contain a and b for parameters or something similar like left and right, convert them into
+- [x] Change make2ByteWord into combineBytesToWord
+- [x] Change break2ByteWord into splitWordToBytes
+- [x] For all functions that contain a and b for parameters or something similar like left and right, convert them into
 highByte and lowByte
-- [ ] Get rid of the repeated break2ByteWord like break2ByteWordHL and make sure to replace those
+- [x] Get rid of the repeated break2ByteWord like break2ByteWordHL and make sure to replace those
 functions with break2ByteWord
-- [ ] Change getMem into readMemoryAtRegPair, setPair to writeRegPairFromWord, setMem into
+- [x] Change getMem into readMemoryAtRegPair, setPair to writeRegPairFromWord, setMem into
 writeMemoryAtRegPair, twoRegAddition into addToRegPair
-- [ ] Add a check for INCREMENT_FLAGS in inx and dcx
-- [ ] Delete the comment for inr and dnr that says its casted to 16 bit number
-- [ ] Change the dad fucntion (answer >> 16) | 1 to (answer >> 16) & 1
-- [ ] Replace stax with setMem(state, a, b, value) changed to the correct function name and arguments
-- [ ] Add breaks in the switch statement to prevent fall through
-- [ ] Lack of default case (Make one for unknown upcode)
-- [ ] Add bounds checking for readByte and writeByte
-- [ ] Remove the decrement for the pc in UnimplementedInstruction
+- [x] Delete the comment for inr and dnr that says its casted to 16 bit number
+- [x] Change the dad fucntion (answer >> 16) | 1 to (answer >> 16) & 1
+- [x] Replace stax with setMem(state, a, b, value) changed to the correct function name and arguments
+- [x] Add breaks in the switch statement to prevent fall through
+- [x] Lack of default case (Make one for unknown upcode)
+- [x] Add bounds checking for readByte and writeByte
+- [x] Remove the decrement for the pc in UnimplementedInstruction
+
+## Date: 2024-12-24
+
+### Thoughts
+Seems like the code isn't as terrible as I thought. I've noted down the features that need to be
+fixed in the 2024-12-23 entry and am working through them one at a time.
+
+Update: All of the issues have been solved and finished
