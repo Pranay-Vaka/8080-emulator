@@ -132,7 +132,7 @@ uint8_t readByte(State8080 *state, uint16_t index) {
 // inserts byte into a certain index in the memory array
 void writeByte(State8080 *state, uint16_t index, uint8_t value) {
     if (index >= MAX_MEMORY_SIZE) {
-        fprintf(stderr, "Memory write is out of bounds: 0x%04X\n", index);
+        fprintf(stderr, "Memory write out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
     }
     state->memory[index] = value;

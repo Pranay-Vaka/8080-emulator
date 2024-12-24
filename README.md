@@ -4,5 +4,4 @@ The main goal of this project is to be able to run the original Space Invaders o
 
 ## Limitations for now
 
-- The AC (Auxillary Carry) flag has not been implemented.
-- This might cause issues with certain instructions, but is not required for Space Invaders
+- The AC (Auxillary Carry) flag has not been implemented. This might cause issues with certain instructions, but is not required for Space Invaders
