@@ -43,3 +43,10 @@ Seems like the code isn't as terrible as I thought. I've noted down the features
 fixed in the 2024-12-23 entry and am working through them one at a time.
 
 Update: All of the issues have been solved and finished
+
+
+## Date: 2024-12-27
+
+### Thoughts
+Changed the move instructions in the switch statements from directly assigning the values in the
+switch statement to calling a function
