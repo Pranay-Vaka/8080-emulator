@@ -158,7 +158,7 @@ uint16_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void writeRegPairFromWord(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+void writeRegPairFromWord(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
         *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
         *lowByte = value & 0xff;
 }
@@ -220,7 +220,7 @@ void dad(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
 }
 
 void lxi(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
-    writeRegPairFromWord(state, highByte, lowByte, value);
+    writeRegPairFromWord(highByte, lowByte, value);
 }
 
 
@@ -469,6 +469,12 @@ void Emulate(State8080 *state) {
         case 0x30:
             UnimplementedInstruction(state, *opcode);
             break;
+
+        case 0x31:
+
+            lxi(state, state -> sp., uint8_t *lowByte, uint16_t value)
+
+
 
 
         // mov opcodes
