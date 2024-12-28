@@ -470,6 +470,7 @@ void Emulate(State8080 *state) {
             UnimplementedInstruction(state, *opcode);
             break;
 
+
         // mov opcodes
         case 0x40:
             mov(&state->b, state->b);

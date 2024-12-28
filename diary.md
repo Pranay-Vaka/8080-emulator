@@ -14,7 +14,7 @@ does not completely suck.
 
 ## Date: 2024-12-23
 
-### Issues
+### Todos
 - [x] Change Emulate8080p to Emulate
 - [x] Convert all the parameters to foo *bar instead of foo* bar
 - [x] Use fprintf for the error messages, e.g. for UnimplementedInstruction
@@ -49,4 +49,13 @@ Update: All of the issues have been solved and finished
 
 ### Thoughts
 Changed the move instructions in the switch statements from directly assigning the values in the
-switch statement to calling a function
+switch statement to calling a function.
+
+
+## Date: 2024-12-28
+
+### Todos
+[ ] Complete all the opcodes until 0x3f
+
+### Thoughts
+Had a look over some of the documentation from 0x31 to 3f. Seems fine to implement.
