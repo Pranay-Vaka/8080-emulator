@@ -158,7 +158,7 @@ uint16_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void writeRegPairFromWord(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+void writeRegPairFromWord(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
         *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
         *lowByte = value & 0xff;
 }
@@ -171,7 +171,7 @@ void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, u
 
 
 // adds values in two registers together and returns the 32 bit value
-uint32_t addToRegPair(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
     value = twoByteWord + value;
 
@@ -186,10 +186,10 @@ uint32_t addToRegPair(uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
 
 // Joins to 8 bit words, increments it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void inx(uint8_t *highByte, uint8_t *lowByte) {
+void inx(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word++;
-    splitWordToBytes(highByte, lowByte, word);
+    writeRegPairFromWord(state, highByte, lowByte, word);
 }
 
 void inr(State8080 *state, uint8_t *value) {
@@ -200,10 +200,10 @@ void inr(State8080 *state, uint8_t *value) {
 
 // Joins to 8 bit words, decrements it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void dcx(uint8_t *highByte, uint8_t *lowByte) {
+void dcx(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word--;
-    splitWordToBytes(highByte, lowByte, word);
+    writeRegPairFromWord(state, highByte, lowByte, word);
 }
 
 void dcr(State8080 *state, uint8_t *value) {
@@ -215,12 +215,12 @@ void dcr(State8080 *state, uint8_t *value) {
 // dad opcode that joins two bytes and then adds them to register h and l
 void dad(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t value = combineBytesToWord(*highByte, *lowByte);
-    uint32_t result = addToRegPair(&state -> h, &state -> l, value);
+    uint32_t result = addToRegPair(state, &state -> h, &state -> l, value);
     state -> cc.cy = (result >> 16) & 1;
 }
 
 void lxi(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
-    writeRegPairFromWord(highByte, lowByte, value);
+    writeRegPairFromWord(state, highByte, lowByte, value);
 }
 
 
@@ -231,7 +231,7 @@ void lhld(State8080 *state, uint16_t address) {
     state -> h = readByte(state, address + 1);
 }
 
-void mov(uint8_t *dest, uint8_t src) {
+void mov(State8080* state, uint8_t *dest, uint8_t src) {
     *dest = src;
 }
 
@@ -250,7 +250,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x03:
-            inx(&state -> b, &state -> c);
+            inx(state, &state -> b, &state -> c);
             break;
 
         case 0x04:
@@ -285,7 +285,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x0b:
-            dcx(&state -> b, &state -> c);
+            dcx(state, &state -> b, &state -> c);
             break;
 
         case 0x0c:
@@ -324,7 +324,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x13:
-            inx(&state -> d, &state -> e);
+            inx(state, &state -> d, &state -> e);
             break;
 
         case 0x14:
@@ -360,7 +360,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x1b:
-            dcx(&state -> d, &state -> e);
+            dcx(state, &state -> d, &state -> e);
             break;
 
         case 0x1c:
@@ -401,7 +401,7 @@ void Emulate(State8080 *state) {
             }
 
         case 0x23:
-            inx(&state -> h, &state -> l);
+            inx(state, &state -> h, &state -> l);
             break;
 
         case 0x24:
@@ -447,7 +447,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x2b:
-            dcx(&state -> h, &state -> l);
+            dcx(state, &state -> h, &state -> l);
             break;
 
         case 0x2c:
@@ -470,157 +470,166 @@ void Emulate(State8080 *state) {
             UnimplementedInstruction(state, *opcode);
             break;
 
+        // lxi for stack pointer
+        // hacky fix but this works
         case 0x31:
+            {
+                // stores the high byte and low byte values
+                uint8_t stackPointerHighByte = (state -> sp) >> 8;
+                uint8_t stackPointerLowByte = (state -> sp) & 0xff;
+                // does the operation
+                lxi(state, &stackPointerHighByte, &stackPointerLowByte, nextWord(state));
+                // converts them back into a word
+                state -> sp = combineBytesToWord(stackPointerHighByte, stackPointerLowByte);
+            }
 
-            lxi(state, state -> sp., uint8_t *lowByte, uint16_t value)
-
-
+        case 0x32:
 
 
         // mov opcodes
         case 0x40:
-            mov(&state->b, state->b);
+            mov(state, &state->b, state->b);
             break;
         case 0x41:
-            mov(&state->b, state->c);
+            mov(state, &state->b, state->c);
             break;
         case 0x42:
-            mov(&state->b, state->d);
+            mov(state, &state->b, state->d);
             break;
         case 0x43:
-            mov(&state->b, state->e);
+            mov(state, &state->b, state->e);
             break;
         case 0x44:
-            mov(&state->b, state->h);
+            mov(state, &state->b, state->h);
             break;
         case 0x45:
-            mov(&state->b, state->l);
+            mov(state, &state->b, state->l);
             break;
         case 0x46:
-            mov(&state->b, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->b, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x47:
-            mov(&state->b, state->a);
+            mov(state, &state->b, state->a);
             break;
         case 0x48:
-            mov(&state->c, state->b);
+            mov(state, &state->c, state->b);
             break;
         case 0x49:
-            mov(&state->c, state->c);
+            mov(state, &state->c, state->c);
             break;
         case 0x4a:
-            mov(&state->c, state->d);
+            mov(state, &state->c, state->d);
             break;
         case 0x4b:
-            mov(&state->c, state->e);
+            mov(state, &state->c, state->e);
             break;
         case 0x4c:
-            mov(&state->c, state->h);
+            mov(state, &state->c, state->h);
             break;
         case 0x4d:
-            mov(&state->c, state->l);
+            mov(state, &state->c, state->l);
             break;
         case 0x4e:
-            mov(&state->c, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->c, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x4f:
-            mov(&state->c, state->a);
+            mov(state, &state->c, state->a);
             break;
         case 0x50:
-            mov(&state->d, state->b);
+            mov(state, &state->d, state->b);
             break;
         case 0x51:
-            mov(&state->d, state->c);
+            mov(state, &state->d, state->c);
             break;
         case 0x52:
-            mov(&state->d, state->d);
+            mov(state, &state->d, state->d);
             break;
         case 0x53:
-            mov(&state->d, state->e);
+            mov(state, &state->d, state->e);
             break;
         case 0x54:
-            mov(&state->d, state->h);
+            mov(state, &state->d, state->h);
             break;
         case 0x55:
-            mov(&state->d, state->l);
+            mov(state, &state->d, state->l);
             break;
         case 0x56:
-            mov(&state->d, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->d, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x57:
-            mov(&state->d, state->a);
+            mov(state, &state->d, state->a);
             break;
         case 0x58:
-            mov(&state->e, state->b);
+            mov(state, &state->e, state->b);
             break;
         case 0x59:
-            mov(&state->e, state->c);
+            mov(state, &state->e, state->c);
             break;
         case 0x5a:
-            mov(&state->e, state->d);
+            mov(state, &state->e, state->d);
             break;
         case 0x5b:
-            mov(&state->e, state->e);
+            mov(state, &state->e, state->e);
             break;
         case 0x5c:
-            mov(&state->e, state->h);
+            mov(state, &state->e, state->h);
             break;
         case 0x5d:
-            mov(&state->e, state->l);
+            mov(state, &state->e, state->l);
             break;
         case 0x5e:
-            mov(&state->e, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->e, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x5f:
-            mov(&state->e, state->a);
+            mov(state, &state->e, state->a);
             break;
         case 0x60:
-            mov(&state->h, state->b);
+            mov(state, &state->h, state->b);
             break;
         case 0x61:
-            mov(&state->h, state->c);
+            mov(state, &state->h, state->c);
             break;
         case 0x62:
-            mov(&state->h, state->d);
+            mov(state, &state->h, state->d);
             break;
         case 0x63:
-            mov(&state->h, state->e);
+            mov(state, &state->h, state->e);
             break;
         case 0x64:
-            mov(&state->h, state->h);
+            mov(state, &state->h, state->h);
             break;
         case 0x65:
-            mov(&state->h, state->l);
+            mov(state, &state->h, state->l);
             break;
         case 0x66:
-            mov(&state->h, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->h, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x67:
-            mov(&state->h, state->a);
+            mov(state, &state->h, state->a);
             break;
         case 0x68:
-            mov(&state->l, state->b);
+            mov(state, &state->l, state->b);
             break;
         case 0x69:
-            mov(&state->l, state->c);
+            mov(state, &state->l, state->c);
             break;
         case 0x6a:
-            mov(&state->l, state->d);
+            mov(state, &state->l, state->d);
             break;
         case 0x6b:
-            mov(&state->l, state->e);
+            mov(state, &state->l, state->e);
             break;
         case 0x6c:
-            mov(&state->l, state->h);
+            mov(state, &state->l, state->h);
             break;
         case 0x6d:
-            mov(&state->l, state->l);
+            mov(state, &state->l, state->l);
             break;
         case 0x6e:
-            mov(&state->l, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->l, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x6f:
-            mov(&state->l, state->a);
+            mov(state, &state->l, state->a);
             break;
         case 0x70:
             writeMemoryAtRegPair(state, state -> h, state -> l, state -> b);
@@ -648,28 +657,28 @@ void Emulate(State8080 *state) {
             writeMemoryAtRegPair(state, state -> h, state -> l, state -> a);
             break;
         case 0x78:
-            mov(&state->a, state->b);
+            mov(state, &state->a, state->b);
             break;
         case 0x79:
-            mov(&state->a, state->c);
+            mov(state, &state->a, state->c);
             break;
         case 0x7a:
-            mov(&state->a, state->d);
+            mov(state, &state->a, state->d);
             break;
         case 0x7b:
-            mov(&state->a, state->e);
+            mov(state, &state->a, state->e);
             break;
         case 0x7c:
-            mov(&state->a, state->h);
+            mov(state, &state->a, state->h);
             break;
         case 0x7d:
-            mov(&state->a, state->l);
+            mov(state, &state->a, state->l);
             break;
         case 0x7e:
-            mov(&state->a, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->a, readMemoryAtRegPair(state, state -> h, state -> l));
             break;
         case 0x7f:
-            mov(&state->a, state->a);
+            mov(state, &state->a, state->a);
             break;
         default:
             fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);

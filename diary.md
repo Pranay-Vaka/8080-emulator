@@ -55,7 +55,15 @@ switch statement to calling a function.
 ## Date: 2024-12-28
 
 ### Todos
+[x] Add state to instructions
 [ ] Complete all the opcodes until 0x3f
 
 ### Thoughts
-Had a look over some of the documentation from 0x31 to 3f. Seems fine to implement.
+Had a look over some of the documentation from 0x31 to 3f. Seems fine to implement. I added the
+state to all the functions for consistency/future proofing
+
+Update:
+Refactoring required. Need to convert the instructions (e.g. lxi) to take a 16 bit word rather than
+two registers which are then combined. This is so that the stack pointer works fine with these
+instructions. Also need to change the instructions in the switch statement to combine register pairs
+into word before calling their instructions. Spain without the S
