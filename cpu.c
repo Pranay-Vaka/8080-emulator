@@ -173,6 +173,9 @@ void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, u
     writeByte(state, index, value);
 }
 
+void writeMemoryAtHL(State8080 *state, uint8_t value) {
+    writeMemoryAtRegPair(state, state -> h, state -> l, value);
+}
 
 // adds values in two registers together and returns the 32 bit value
 uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
@@ -530,7 +533,7 @@ void Emulate(State8080 *state) {
         case 0x36:
             {
                 uint8_t data = nextByte(state);
-                writeMemoryAtRegPair(state, state -> h, state -> l, data);
+                writeMemoryAtHL(state, data);
                 break;
             }
 
@@ -722,29 +725,29 @@ void Emulate(State8080 *state) {
             mov(state, &state->l, state->a);
             break;
         case 0x70:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> b);
+            writeMemoryAtHL(state, state -> b);
             break;
         case 0x71:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> c);
+            writeMemoryAtHL(state, state -> c);
             break;
         case 0x72:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> d);
+            writeMemoryAtHL(state, state -> d);
             break;
         case 0x73:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> e);
+            writeMemoryAtHL(state, state -> e);
             break;
         case 0x74:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> h);
+            writeMemoryAtHL(state, state -> h);
             break;
         case 0x75:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> l);
+            writeMemoryAtHL(state, state -> l);
             break;
         case 0x76:
             printf("Halting emulation\n");
             exit(EXIT_SUCCESS);
             break;
         case 0x77:
-            writeMemoryAtRegPair(state, state -> h, state -> l, state -> a);
+            writeMemoryAtHL(state, state -> a);
             break;
         case 0x78:
             mov(state, &state->a, state->b);
@@ -770,6 +773,9 @@ void Emulate(State8080 *state) {
         case 0x7f:
             mov(state, &state->a, state->a);
             break;
+
+        case 0x80:
+
         default:
             fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
             exit(EXIT_FAILURE);
