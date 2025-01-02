@@ -153,18 +153,22 @@ uint16_t nextWord(State8080 *state) {
 // getters and setters for register pairs
 
 // get value of the address pointed to by a register pair
-uint16_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte) {
+uint8_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte) {
     return readByte(state, combineBytesToWord(highByte, lowByte));
 }
 
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
 void writeRegPairFromWord(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
-        *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
-        *lowByte = value & 0xff;
+    *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
+    *lowByte = value & 0xff;
+}
+
+void writeDirectFromWord(State8080 *state, uint16_t *index, uint16_t value) {
+    *index = value;
 }
 
 // set a value to the address pointed to by a register pair
-void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, uint16_t value) {
+void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, uint8_t value) {
     uint16_t index = combineBytesToWord(highByte, lowByte);
     writeByte(state, index, value);
 }
@@ -175,9 +179,7 @@ uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uin
     uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
     value = twoByteWord + value;
 
-    *highByte = (value & 0xff00) >> 8;
-    *lowByte = (value & 0xff);
-
+    writeRegPairFromWord(state, highByte, lowByte, value);
     return value;
 }
 
@@ -186,10 +188,15 @@ uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uin
 
 // Joins to 8 bit words, increments it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void inx(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+void inxRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word++;
     writeRegPairFromWord(state, highByte, lowByte, word);
+}
+
+// increments the 16 bit word
+void inx(State8080 *state, uint16_t *value) {
+    (*value)++;
 }
 
 void inr(State8080 *state, uint8_t *value) {
@@ -200,10 +207,15 @@ void inr(State8080 *state, uint8_t *value) {
 
 // Joins to 8 bit words, decrements it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void dcx(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+void dcxRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word--;
     writeRegPairFromWord(state, highByte, lowByte, word);
+}
+
+// decrements the 16 bit word
+void dcx(State8080 *state, uint16_t *value) {
+    (*value)--;
 }
 
 void dcr(State8080 *state, uint8_t *value) {
@@ -212,17 +224,28 @@ void dcr(State8080 *state, uint8_t *value) {
     *value = result; // discards the first 8 bits
 };
 
-// dad opcode that joins two bytes and then adds them to register h and l
-void dad(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
-    uint16_t value = combineBytesToWord(*highByte, *lowByte);
+
+// dad opcode takes word and then adds them to register h and l
+void dad(State8080 *state, uint16_t value) {
     uint32_t result = addToRegPair(state, &state -> h, &state -> l, value);
     state -> cc.cy = (result >> 16) & 1;
 }
 
-void lxi(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+// dadRegPair opcode that joins two bytes and then adds them to register h and l
+void dadRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+    uint16_t value = combineBytesToWord(*highByte, *lowByte);
+    dad(state, value);
+}
+
+// loads a 16 bit value into a register pair
+void lxiRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     writeRegPairFromWord(state, highByte, lowByte, value);
 }
 
+// loads a 16 bit value into a register pair
+void lxi(State8080 *state, uint16_t *index, uint16_t value) {
+    writeDirectFromWord(state, index, value);
+}
 
 void lhld(State8080 *state, uint16_t address) {
     // stores the data in the address to register l
@@ -242,7 +265,7 @@ void Emulate(State8080 *state) {
     switch(*opcode) {
         case 0x00: break;
         case 0x01:
-            lxi(state, &state -> b, &state -> c, nextWord(state));
+            lxiRegPair(state, &state -> b, &state -> c, nextWord(state));
             break;
 
         case 0x02:
@@ -250,7 +273,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x03:
-            inx(state, &state -> b, &state -> c);
+            inxRegPair(state, &state -> b, &state -> c);
             break;
 
         case 0x04:
@@ -277,7 +300,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x09:
-            dad(state, &state -> b, &state -> c);
+            dadRegPair(state, &state -> b, &state -> c);
             break;
 
         case 0x0a:
@@ -285,7 +308,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x0b:
-            dcx(state, &state -> b, &state -> c);
+            dcxRegPair(state, &state -> b, &state -> c);
             break;
 
         case 0x0c:
@@ -316,7 +339,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x11:
-            lxi(state, &state -> d, &state -> e, nextWord(state));
+            lxiRegPair(state, &state -> d, &state -> e, nextWord(state));
             break;
 
         case 0x12:
@@ -324,7 +347,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x13:
-            inx(state, &state -> d, &state -> e);
+            inxRegPair(state, &state -> d, &state -> e);
             break;
 
         case 0x14:
@@ -352,7 +375,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x19:
-            dad(state, &state -> d, &state -> e);
+            dadRegPair(state, &state -> d, &state -> e);
             break;
 
         case 0x1a:
@@ -360,7 +383,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x1b:
-            dcx(state, &state -> d, &state -> e);
+            dcxRegPair(state, &state -> d, &state -> e);
             break;
 
         case 0x1c:
@@ -389,7 +412,7 @@ void Emulate(State8080 *state) {
 
 
         case 0x21:
-            lxi(state, &state -> h, &state -> l, nextWord(state));
+            lxiRegPair(state, &state -> h, &state -> l, nextWord(state));
             break;
 
         case 0x22:
@@ -401,7 +424,7 @@ void Emulate(State8080 *state) {
             }
 
         case 0x23:
-            inx(state, &state -> h, &state -> l);
+            inxRegPair(state, &state -> h, &state -> l);
             break;
 
         case 0x24:
@@ -436,7 +459,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x29:
-            dad(state, &state -> h, &state -> l);
+            dadRegPair(state, &state -> h, &state -> l);
             break;
 
         case 0x2a:
@@ -447,7 +470,7 @@ void Emulate(State8080 *state) {
             break;
 
         case 0x2b:
-            dcx(state, &state -> h, &state -> l);
+            dcxRegPair(state, &state -> h, &state -> l);
             break;
 
         case 0x2c:
@@ -470,21 +493,88 @@ void Emulate(State8080 *state) {
             UnimplementedInstruction(state, *opcode);
             break;
 
-        // lxi for stack pointer
-        // hacky fix but this works
         case 0x31:
+            lxi(state, &state -> sp, nextWord(state));
+            break;
+
+        // sta instruction
+        case 0x32:
+            writeByte(state, nextWord(state), state -> a);
+            break;
+
+        case 0x33:
+            inx(state, &state -> sp);
+            break;
+
+        // inr for HL
+        case 0x34:
             {
-                // stores the high byte and low byte values
-                uint8_t stackPointerHighByte = (state -> sp) >> 8;
-                uint8_t stackPointerLowByte = (state -> sp) & 0xff;
-                // does the operation
-                lxi(state, &stackPointerHighByte, &stackPointerLowByte, nextWord(state));
-                // converts them back into a word
-                state -> sp = combineBytesToWord(stackPointerHighByte, stackPointerLowByte);
+                uint16_t address = combineBytesToWord(state->h, state->l);
+                uint8_t value = readByte(state, address);
+                inr(state, &value);
+                writeByte(state, address, value);
+                break;
             }
 
-        case 0x32:
+        // dcr for HL
+        case 0x35:
+            {
+                uint16_t address = combineBytesToWord(state->h, state->l);
+                uint8_t value = readByte(state, address);
+                dcr(state, &value);
+                writeByte(state, address, value);
+                break;
+            }
 
+        // mvi for hl
+        case 0x36:
+            {
+                uint8_t data = nextByte(state);
+                writeMemoryAtRegPair(state, state -> h, state -> l, data);
+                break;
+            }
+
+        // stc instruction
+        case 0x37:
+            state -> cc.cy = 1;
+            break;
+
+        case 0x38:
+            UnimplementedInstruction(state, 0x38);
+            break;
+
+        case 0x39:
+            dad(state, state -> sp);
+            break;
+
+        // lda addr
+        case 0x3a:
+            state -> a = nextWord(state);
+            break;
+
+        case 0x3b:
+            dcx(state, &state -> sp);
+            break;
+
+        case 0x3c:
+            inr(state, &state -> a);
+            break;
+
+        case 0x3d:
+            dcr(state, &state -> a);
+            break;
+
+        // mvi
+        case 0x3e:
+            {
+                state -> a = nextByte(state);
+                break;
+            }
+
+        // cmc
+        case 0x3f:
+            state -> cc.cy = ~(state -> cc.cy);
+            break;
 
         // mov opcodes
         case 0x40:
