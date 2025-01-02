@@ -15,7 +15,7 @@ typedef struct ConditionCodes {
 } ConditionCodes;
 
 
-typedef struct State8080 {
+typedef struct State {
     uint8_t a;
     uint8_t b;
     uint8_t c;
@@ -28,11 +28,11 @@ typedef struct State8080 {
     uint8_t *memory; // this is an array that stores integers.
     struct ConditionCodes cc;
     uint8_t int_enable;
-} State8080;
+} State;
 
 
 // this is for any instruction that we have not yet implemented
-void UnimplementedInstruction(State8080 *state, uint8_t opcode) {
+void UnimplementedInstruction(State *state, uint8_t opcode) {
     // Error messages
     fprintf(stderr, "Error: Unimplemented instruction 0x%02x encountered\n", opcode);
     fprintf(stderr, "Program counter: %x\n", state -> pc);
@@ -90,7 +90,7 @@ uint8_t checkCarry(uint16_t value) {
 // SET FLAGS -- function to set the flags for different groups of opcodes
 
 // sets specific flags depending on the binary value given by flagMask
-void setFlags(State8080 *state, uint16_t value, uint8_t flagMask) {
+void setFlags(State *state, uint16_t value, uint8_t flagMask) {
 
     if (flagMask & Z_FLAG) {
         state->cc.z = checkZero(value);
@@ -121,7 +121,7 @@ void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
 }
 
 // returns the byte at a certain index in the memory of the state machine
-uint8_t readByte(State8080 *state, uint16_t index) {
+uint8_t readByte(State *state, uint16_t index) {
     if (index >= MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory read out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
@@ -130,7 +130,7 @@ uint8_t readByte(State8080 *state, uint16_t index) {
 }
 
 // inserts byte into a certain index in the memory array
-void writeByte(State8080 *state, uint16_t index, uint8_t value) {
+void writeByte(State *state, uint16_t index, uint8_t value) {
     if (index >= MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory write out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
@@ -138,11 +138,11 @@ void writeByte(State8080 *state, uint16_t index, uint8_t value) {
     state->memory[index] = value;
 }
 
-uint8_t nextByte(State8080 *state){
+uint8_t nextByte(State *state){
     return readByte(state, state -> pc++);
 }
 
-uint16_t nextWord(State8080 *state) {
+uint16_t nextWord(State *state) {
     uint8_t highByte = nextByte(state);
     uint8_t lowByte = nextByte(state);
 
@@ -153,32 +153,36 @@ uint16_t nextWord(State8080 *state) {
 // getters and setters for register pairs
 
 // get value of the address pointed to by a register pair
-uint8_t readMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte) {
+uint8_t readMemoryAtRegPair(State *state, uint8_t highByte, uint8_t lowByte) {
     return readByte(state, combineBytesToWord(highByte, lowByte));
 }
 
+uint8_t readMemoryAtHL(State *state) {
+    return readMemoryAtRegPair(state, state -> h, state -> l);
+}
+
 // breaks the 16 bit value in half and assigns each half to the register pair respectfully
-void writeRegPairFromWord(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+void writeRegPairFromWord(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     *highByte = (value >> 8) & 0xff; // the 0xff is redundant, but keeping it for clarity
     *lowByte = value & 0xff;
 }
 
-void writeDirectFromWord(State8080 *state, uint16_t *index, uint16_t value) {
+void writeDirectFromWord(State *state, uint16_t *index, uint16_t value) {
     *index = value;
 }
 
 // set a value to the address pointed to by a register pair
-void writeMemoryAtRegPair(State8080 *state, uint8_t highByte, uint8_t lowByte, uint8_t value) {
+void writeMemoryAtRegPair(State *state, uint8_t highByte, uint8_t lowByte, uint8_t value) {
     uint16_t index = combineBytesToWord(highByte, lowByte);
     writeByte(state, index, value);
 }
 
-void writeMemoryAtHL(State8080 *state, uint8_t value) {
+void writeMemoryAtHL(State *state, uint8_t value) {
     writeMemoryAtRegPair(state, state -> h, state -> l, value);
 }
 
 // adds values in two registers together and returns the 32 bit value
-uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
     value = twoByteWord + value;
 
@@ -189,20 +193,67 @@ uint32_t addToRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uin
 
 // ARITHMETIC GROUP -- instructions for the arithmetic values in the isa
 
+void add(State *state, uint8_t value) {
+    uint16_t data = (state -> a) + value;
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void adc(State *state, uint8_t value) {
+    uint16_t data = (state -> a) + value + (state -> cc.cy);
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void sub(State *state, uint8_t value) {
+    uint16_t data = (state -> a) - value;
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void sbb(State *state, uint8_t value) {
+    uint16_t data = (state -> a) - value - (state -> cc.cy);
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void cmp(State *state, uint8_t value) {
+    uint16_t data = (state -> a) - value;
+    setFlags(state, data, ALL_FLAGS);
+}
+
+void ana(State *state, uint8_t value) {
+    uint16_t data = (state -> a) & value;
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void xra(State *state, uint8_t value) {
+    uint16_t data = (state -> a) ^ value;
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+void ora(State *state, uint8_t value) {
+    uint16_t data = (state -> a) | value;
+    setFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
 // Joins to 8 bit words, increments it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void inxRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+void inxRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word++;
     writeRegPairFromWord(state, highByte, lowByte, word);
 }
 
 // increments the 16 bit word
-void inx(State8080 *state, uint16_t *value) {
+void inx(State *state, uint16_t *value) {
     (*value)++;
 }
 
-void inr(State8080 *state, uint8_t *value) {
+void inr(State *state, uint8_t *value) {
     uint8_t result = *value + 1;
     setFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
@@ -210,18 +261,18 @@ void inr(State8080 *state, uint8_t *value) {
 
 // Joins to 8 bit words, decrements it and then splits it up again
 // it is fine if the value overflows, this is expected behaviour.
-void dcxRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+void dcxRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t word = combineBytesToWord(*highByte, *lowByte);
     word--;
     writeRegPairFromWord(state, highByte, lowByte, word);
 }
 
 // decrements the 16 bit word
-void dcx(State8080 *state, uint16_t *value) {
+void dcx(State *state, uint16_t *value) {
     (*value)--;
 }
 
-void dcr(State8080 *state, uint8_t *value) {
+void dcr(State *state, uint8_t *value) {
     uint8_t result = *value - 1;
     setFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
@@ -229,40 +280,40 @@ void dcr(State8080 *state, uint8_t *value) {
 
 
 // dad opcode takes word and then adds them to register h and l
-void dad(State8080 *state, uint16_t value) {
+void dad(State *state, uint16_t value) {
     uint32_t result = addToRegPair(state, &state -> h, &state -> l, value);
     state -> cc.cy = (result >> 16) & 1;
 }
 
 // dadRegPair opcode that joins two bytes and then adds them to register h and l
-void dadRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte) {
+void dadRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t value = combineBytesToWord(*highByte, *lowByte);
     dad(state, value);
 }
 
 // loads a 16 bit value into a register pair
-void lxiRegPair(State8080 *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
+void lxiRegPair(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_t value) {
     writeRegPairFromWord(state, highByte, lowByte, value);
 }
 
 // loads a 16 bit value into a register pair
-void lxi(State8080 *state, uint16_t *index, uint16_t value) {
+void lxi(State *state, uint16_t *index, uint16_t value) {
     writeDirectFromWord(state, index, value);
 }
 
-void lhld(State8080 *state, uint16_t address) {
+void lhld(State *state, uint16_t address) {
     // stores the data in the address to register l
     state -> l = readByte(state, address);
     // stores the data in the address + 1 to register h
     state -> h = readByte(state, address + 1);
 }
 
-void mov(State8080* state, uint8_t *dest, uint8_t src) {
+void mov(State* state, uint8_t *dest, uint8_t src) {
     *dest = src;
 }
 
 
-void Emulate(State8080 *state) {
+void Emulate(State *state) {
     unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
 
     switch(*opcode) {
@@ -599,7 +650,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->b, state->l);
             break;
         case 0x46:
-            mov(state, &state->b, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->b, readMemoryAtHL(state));
             break;
         case 0x47:
             mov(state, &state->b, state->a);
@@ -623,7 +674,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->c, state->l);
             break;
         case 0x4e:
-            mov(state, &state->c, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->c, readMemoryAtHL(state));
             break;
         case 0x4f:
             mov(state, &state->c, state->a);
@@ -647,7 +698,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->d, state->l);
             break;
         case 0x56:
-            mov(state, &state->d, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->d, readMemoryAtHL(state));
             break;
         case 0x57:
             mov(state, &state->d, state->a);
@@ -671,7 +722,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->e, state->l);
             break;
         case 0x5e:
-            mov(state, &state->e, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->e, readMemoryAtHL(state));
             break;
         case 0x5f:
             mov(state, &state->e, state->a);
@@ -695,7 +746,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->h, state->l);
             break;
         case 0x66:
-            mov(state, &state->h, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->h, readMemoryAtHL(state));
             break;
         case 0x67:
             mov(state, &state->h, state->a);
@@ -719,7 +770,7 @@ void Emulate(State8080 *state) {
             mov(state, &state->l, state->l);
             break;
         case 0x6e:
-            mov(state, &state->l, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->l, readMemoryAtHL(state));
             break;
         case 0x6f:
             mov(state, &state->l, state->a);
@@ -768,13 +819,212 @@ void Emulate(State8080 *state) {
             mov(state, &state->a, state->l);
             break;
         case 0x7e:
-            mov(state, &state->a, readMemoryAtRegPair(state, state -> h, state -> l));
+            mov(state, &state->a, readMemoryAtHL(state));
             break;
         case 0x7f:
             mov(state, &state->a, state->a);
             break;
 
         case 0x80:
+            add(state, state -> b);
+            break;
+        case 0x81:
+            add(state, state -> c);
+            break;
+        case 0x82:
+            add(state, state -> d);
+            break;
+        case 0x83:
+            add(state, state -> e);
+            break;
+        case 0x84:
+            add(state, state -> h);
+            break;
+        case 0x85:
+            add(state, state -> l);
+            break;
+        case 0x86:
+            add(state, readMemoryAtHL(state));
+            break;
+        case 0x87:
+            add(state, state -> a);
+            break;
+
+        case 0x88:
+            adc(state, state -> b);
+            break;
+        case 0x89:
+            adc(state, state -> c);
+            break;
+        case 0x8a:
+            adc(state, state -> d);
+            break;
+        case 0x8b:
+            adc(state, state -> e);
+            break;
+        case 0x8c:
+            adc(state, state -> h);
+            break;
+        case 0x8d:
+            adc(state, state -> l);
+            break;
+        case 0x8e:
+            adc(state, readMemoryAtHL(state));
+            break;
+        case 0x8f:
+            adc(state, state -> a);
+            break;
+
+        case 0x90:
+            sub(state, state -> b);
+            break;
+        case 0x91:
+            sub(state, state -> c);
+            break;
+        case 0x92:
+            sub(state, state -> d);
+            break;
+        case 0x93:
+            sub(state, state -> e);
+            break;
+        case 0x94:
+            sub(state, state -> h);
+            break;
+        case 0x95:
+            sub(state, state -> l);
+            break;
+        case 0x96:
+            sub(state, readMemoryAtHL(state));
+            break;
+        case 0x97:
+            sub(state, state -> a);
+            break;
+
+        case 0x98:
+            sbb(state, state -> b);
+            break;
+        case 0x99:
+            sbb(state, state -> c);
+            break;
+        case 0x9a:
+            sbb(state, state -> d);
+            break;
+        case 0x9b:
+            sbb(state, state -> e);
+            break;
+        case 0x9c:
+            sbb(state, state -> h);
+            break;
+        case 0x9d:
+            sbb(state, state -> l);
+            break;
+        case 0x9e:
+            sbb(state, readMemoryAtHL(state));
+            break;
+        case 0x9f:
+            sbb(state, state -> a);
+            break;
+
+        case 0xa0:
+            ana(state, state -> b);
+            break;
+        case 0xa1:
+            ana(state, state -> c);
+            break;
+        case 0xa2:
+            ana(state, state -> d);
+            break;
+        case 0xa3:
+            ana(state, state -> e);
+            break;
+        case 0xa4:
+            ana(state, state -> h);
+            break;
+        case 0xa5:
+            ana(state, state -> l);
+            break;
+        case 0xa6:
+            ana(state, readMemoryAtHL(state));
+            break;
+        case 0xa7:
+            ana(state, state -> a);
+            break;
+
+        case 0xa8:
+            xra(state, state -> b);
+            break;
+        case 0xa9:
+            xra(state, state -> c);
+            break;
+        case 0xaa:
+            xra(state, state -> d);
+            break;
+        case 0xab:
+            xra(state, state -> e);
+            break;
+        case 0xac:
+            xra(state, state -> h);
+            break;
+        case 0xad:
+            xra(state, state -> l);
+            break;
+        case 0xae:
+            xra(state, readMemoryAtHL(state));
+            break;
+        case 0xaf:
+            xra(state, state -> a);
+            break;
+
+        case 0xb0:
+            ora(state, state -> b);
+            break;
+        case 0xb1:
+            ora(state, state -> c);
+            break;
+        case 0xb2:
+            ora(state, state -> d);
+            break;
+        case 0xb3:
+            ora(state, state -> e);
+            break;
+        case 0xb4:
+            ora(state, state -> h);
+            break;
+        case 0xb5:
+            ora(state, state -> l);
+            break;
+        case 0xb6:
+            ora(state, readMemoryAtHL(state));
+            break;
+        case 0xb7:
+            ora(state, state -> a);
+            break;
+
+        case 0xb8:
+            cmp(state, state -> b);
+            break;
+        case 0xb9:
+            cmp(state, state -> c);
+            break;
+        case 0xba:
+            cmp(state, state -> d);
+            break;
+        case 0xbb:
+            cmp(state, state -> e);
+            break;
+        case 0xbc:
+            cmp(state, state -> h);
+            break;
+        case 0xbd:
+            cmp(state, state -> l);
+            break;
+        case 0xbe:
+            cmp(state, readMemoryAtHL(state));
+            break;
+        case 0xbf:
+            cmp(state, state -> a);
+            break;
+
 
         default:
             fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
