@@ -385,42 +385,152 @@ void push(State *state, uint16_t value) {
     writeByteAtSP(state, getLowByte(value));
 }
 
+
+// RETURN INSTRUCTIONS
+
+void ret(State *state) {
+    pop(state, &state -> pc);
+}
+
+void conditionalReturn(State *state, uint8_t condition) {
+    if (condition) ret(state);
+}
+
+// return if value is 0
+void rnz(State *state) {
+    conditionalReturn(state, state -> cc.z == 0);
+}
+
+// return if value is 1
+void rz(State *state) {
+    conditionalReturn(state, state -> cc.z == 1);
+}
+
+// return if carry bit is not set
+void rnc(State *state) {
+    conditionalReturn(state, state -> cc.cy == 0);
+}
+
+// return if carry bit is set
+void rc(State *state) {
+    conditionalReturn(state, state -> cc.cy == 1);
+}
+
+// return if positive (sign bit is 0)
+void rp(State *state) {
+    conditionalReturn(state, state -> cc.s == 0);
+}
+
+// return if odd parity (parity bit is 0)
+void rpo(State *state) {
+    conditionalReturn(state, state -> cc.p == 0);
+}
+
+// return if even parity (parity bit is 1)
+void rpe(State *state) {
+    conditionalReturn(state, state -> cc.p == 1);
+}
+
 // JUMP INSTRUCTIONS
 
 void jmp(State *state, uint16_t addr) {
     state -> pc = addr;
 }
 
-// jump if value is 0
-void jnz(State *state, uint16_t addr) {
-    if (state -> cc.z == 0) {
+void conditionalJump(State *state, uint16_t addr, uint8_t condition) {
+    if (condition) {
         jmp(state, addr);
     } else {
         state -> pc += 3;
     }
 }
 
+// jump if value is 0
+void jnz(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.z == 0);
+}
+
 // jump if value is 1
 void jz(State *state, uint16_t addr) {
-    if (state -> cc.z == 1) {
-        jmp(state, addr);
-    }
+    conditionalJump(state, addr, state -> cc.z == 1);
 }
+
+// jump if carry bit is not set
+void jnc(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.cy == 0);
+}
+
+// jump if carry bit is set
+void jc(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.cy == 1);
+}
+
+// jump if positive (sign bit is 0)
+void jp(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.s == 0);
+}
+
+// jump if odd parity (parity bit is 0)
+void jpo(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.p == 0);
+}
+
+// jump if even parity (parity bit is 1)
+void jpe(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.p == 1);
+}
+
 
 // CALL INSTRUCTIONS
 
 void call(State *state, uint16_t addr) {
     push(state, state -> pc); // pushes the return address to the stack
-    call(state, addr);
+    jmp(state, addr);
 }
 
-void cnz(State *state, uint16_t addr) {
-    if (state -> cc.z == 0) {
+void conditionalCall(State *state, uint16_t addr, uint8_t condition) {
+    if (condition) {
         call(state, addr);
     } else {
         state -> pc += 3;
     }
 }
+
+// call if value is 0
+void cnz(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.z == 0);
+}
+
+// call if value is 1
+void cz(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.z == 1);
+}
+
+// call if carry bit is not set
+void cnc(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.cy == 0);
+}
+
+// call if carry bit is set
+void cc(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.cy == 1);
+}
+
+// call if positive (sign bit is 0)
+void cp(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.s == 0);
+}
+
+// call if odd parity (parity bit is 0)
+void cpo(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.p == 0);
+}
+
+// call if even parity (parity bit is 1)
+void cpe(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.p == 1);
+}
+
 
 // INTERRUPT INSTRUCTIONS
 
@@ -1142,9 +1252,7 @@ void Emulate(State *state) {
 
         // rnz
         case 0xc0:
-            if (state -> cc.z == 0) {
-                pop(state, &state -> pc);
-            }
+            rnz(state);
             break;
 
         // pop b
@@ -1178,18 +1286,102 @@ void Emulate(State *state) {
 
         // rz
         case 0xc8:
-            if (state -> cc.z == 1) {
-                pop(state, &state -> pc);
-            }
+            rz(state);
             break;
 
         // ret
         case 0xc9:
-            pop(state, &state -> pc);
+            ret(state);
+            break;
 
         case 0xca:
             jz(state, nextWord(state));
+            break;
 
+        case 0xcb:
+            UnimplementedInstruction(state, 0xcb);
+
+        case 0xcc:
+            cz(state, nextWord(state));
+            break;
+
+        case 0xcd:
+            call(state, nextWord(state));
+            break;
+
+        case 0xce:
+            adc(state, nextWord(state));
+
+        case 0xcf:
+            rst(state, 1);
+            break;
+
+        // rnc
+        case 0xd0:
+            rnc(state);
+            break;
+
+        case 0xd1:
+            popIntoRegPair(state, &state -> d, &state -> e);
+            break;
+
+        case 0xd2:
+            jnc(state, nextWord(state));
+            break;
+
+        // TODO -- OUT instruction only works with external hardware
+        case 0xd3:
+            UnimplementedInstruction(state, 0xd3);
+
+        case 0xd4:
+            cnc(state, nextWord(state));
+            break;
+
+        case 0xd5:
+            pushIntoRegPair(state, &state -> d, &state -> e);
+            break;
+
+        // sui instruction
+        case 0xd6:
+            sub(state, nextByte(state));
+            break;
+
+        case 0xd7:
+            rst(state, 2);
+            break;
+
+        case 0xd8:
+            rc(state);
+            break;
+
+        case 0xd9:
+            UnimplementedInstruction(state, 0xd9);
+
+        case 0xda:
+            jc(state, nextWord(state));
+            break;
+
+        // TODO -- IN instruction only works with external hardware
+        case 0xdb:
+            UnimplementedInstruction(state, 0xdb);
+
+        case 0xdc:
+            cc(state, nextWord(state));
+            break;
+
+        case 0xdd:
+            UnimplementedInstruction(state, 0xdd);
+
+        case 0xde:
+            sbb(state, nextWord(state));
+            break;
+
+        case 0xdf:
+            rst(state, 3);
+            break;
+
+        case 0xe0:
+            break;
 
         default:
             fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
