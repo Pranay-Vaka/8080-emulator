@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/types.h>
 
+// memory size
 #define MEMORY_SIZE 65536
 #define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
+
+// stack size
+#define STACK_TOP 0xFFFF
+#define STACK_BOTTOM 0x8000
 
 typedef struct ConditionCodes {
     uint8_t z:1;
@@ -120,6 +126,14 @@ void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
     *lowByte = word & 0xff;
 }
 
+uint8_t getHighByte(uint16_t value) {
+    return (value >> 8) & 0xff;
+}
+
+uint8_t getLowByte(uint16_t value) {
+    return value & 0xff;
+}
+
 // returns the byte at a certain index in the memory of the state machine
 uint8_t readByte(State *state, uint16_t index) {
     if (index >= MAX_MEMORY_SIZE) {
@@ -129,6 +143,10 @@ uint8_t readByte(State *state, uint16_t index) {
     return state -> memory[index];
 }
 
+uint8_t readByteAtSP(State *state) {
+    return readByte(state, state -> sp);
+}
+
 // inserts byte into a certain index in the memory array
 void writeByte(State *state, uint16_t index, uint8_t value) {
     if (index >= MAX_MEMORY_SIZE) {
@@ -136,6 +154,11 @@ void writeByte(State *state, uint16_t index, uint8_t value) {
         exit(EXIT_FAILURE);
     }
     state->memory[index] = value;
+}
+
+// inserts byte into the stack pointer
+void writeByteAtSP(State *state, uint8_t value) {
+    writeByte(state, state -> sp, value);
 }
 
 uint8_t nextByte(State *state){
@@ -308,10 +331,102 @@ void lhld(State *state, uint16_t address) {
     state -> h = readByte(state, address + 1);
 }
 
-void mov(State* state, uint8_t *dest, uint8_t src) {
+void mov(State *state, uint8_t *dest, uint8_t src) {
     *dest = src;
 }
 
+
+// STACK INSTRUCTIONS
+
+// stack arithmethic function
+// incremnetValue can be positive or negative
+void stackArithmethic(State *state, uint16_t incrementValue) {
+    state -> sp += incrementValue;
+    if (state -> sp > STACK_TOP) {
+        printf("Stack overflow error: %d", state -> sp);
+        exit(EXIT_FAILURE);
+    }
+    else if (state -> sp < STACK_BOTTOM) {
+        printf("Stack underflow error: %d", state -> sp);
+        exit(EXIT_FAILURE);
+    }
+}
+
+// takes stack pointer and stores them into a register pair
+void popIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
+    *lowByte = readByteAtSP(state);
+    stackArithmethic(state, 1);
+    *highByte= readByteAtSP(state);
+    stackArithmethic(state, 1);
+}
+
+
+// takes stack pointer and stores them into a register pair
+void pop(State *state, uint16_t *value) {
+    uint8_t lowByte = readByteAtSP(state);
+    stackArithmethic(state, 1);
+    uint8_t highByte= readByteAtSP(state);
+    stackArithmethic(state, 1);
+    *value = combineBytesToWord(highByte, lowByte);
+}
+
+// pushes register pair onto the stack
+void pushIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
+    stackArithmethic(state, -1);
+    *highByte= readByteAtSP(state);
+    stackArithmethic(state, -1);
+    *lowByte = readByteAtSP(state);
+}
+
+void push(State *state, uint16_t value) {
+    stackArithmethic(state, -1);
+    writeByteAtSP(state, getHighByte(value));
+    stackArithmethic(state, -1);
+    writeByteAtSP(state, getLowByte(value));
+}
+
+// JUMP INSTRUCTIONS
+
+void jmp(State *state, uint16_t addr) {
+    state -> pc = addr;
+}
+
+// jump if value is 0
+void jnz(State *state, uint16_t addr) {
+    if (state -> cc.z == 0) {
+        jmp(state, addr);
+    } else {
+        state -> pc += 3;
+    }
+}
+
+// jump if value is 1
+void jz(State *state, uint16_t addr) {
+    if (state -> cc.z == 1) {
+        jmp(state, addr);
+    }
+}
+
+// CALL INSTRUCTIONS
+
+void call(State *state, uint16_t addr) {
+    push(state, state -> pc); // pushes the return address to the stack
+    call(state, addr);
+}
+
+void cnz(State *state, uint16_t addr) {
+    if (state -> cc.z == 0) {
+        call(state, addr);
+    } else {
+        state -> pc += 3;
+    }
+}
+
+// INTERRUPT INSTRUCTIONS
+
+void rst(State *state, uint8_t n) {
+    call(state, 8 * n);
+}
 
 void Emulate(State *state) {
     unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
@@ -1024,6 +1139,56 @@ void Emulate(State *state) {
         case 0xbf:
             cmp(state, state -> a);
             break;
+
+        // rnz
+        case 0xc0:
+            if (state -> cc.z == 0) {
+                pop(state, &state -> pc);
+            }
+            break;
+
+        // pop b
+        case 0xc1:
+            popIntoRegPair(state, &state -> b, &state -> c);
+            break;
+
+        case 0xc2:
+            jnz(state, nextWord(state));
+            break;
+
+        case 0xc3:
+            jmp(state, nextWord(state));
+            break;
+
+        case 0xc4:
+            cnz(state, nextWord(state));
+            break;
+
+        case 0xc5:
+            pushIntoRegPair(state, &state -> b, &state -> c);
+            break;
+
+        case 0xc6:
+            add(state, nextByte(state));
+            break;
+
+        case 0xc7:
+            rst(state, 0);
+            break;
+
+        // rz
+        case 0xc8:
+            if (state -> cc.z == 1) {
+                pop(state, &state -> pc);
+            }
+            break;
+
+        // ret
+        case 0xc9:
+            pop(state, &state -> pc);
+
+        case 0xca:
+            jz(state, nextWord(state));
 
 
         default:
