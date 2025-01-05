@@ -88,3 +88,8 @@ Refactored the code slightly, now there are functions that can take the 16 bit s
 carry out instructions that previously only took resgister pairs
 
 Update: Finally completed the instructions until 0x3f.
+
+## Date: 2025-01-02
+
+### Thoughts
+Finished all the arithmetic functions

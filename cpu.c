@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/types.h>
 
+// memory size
 #define MEMORY_SIZE 65536
 #define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
+
+// stack size
+#define STACK_TOP 0xFFFF
+#define STACK_BOTTOM 0x8000
 
 typedef struct ConditionCodes {
     uint8_t z:1;
@@ -44,14 +50,16 @@ void UnimplementedInstruction(State *state, uint8_t opcode) {
 // FLAGS -- Constant flags made from bit shifts to manipulate different flags
 
 // bit shifts each of the flags so that it can be logically OR'd to make it 1
-#define Z_FLAG (1<<7)
-#define S_FLAG (1<<6)
-#define P_FLAG (1<<5)
-#define CY_FLAG (1<<4)
-#define AC_FLAG (1<<3)
+#define S_FLAG (1<<7)
+#define Z_FLAG (1<<6)
+#define AC_FLAG (1<<4)
+#define P_FLAG (1<<2)
+#define CY_FLAG (1<<0)
 #define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used for only the increment and decrement functions
 #define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
 #define NON_CARRY_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+#define PSW_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+
 
 
 // CHECK FLAGS -- Checks certain values for the flags
@@ -87,10 +95,10 @@ uint8_t checkCarry(uint16_t value) {
 }
 
 
-// SET FLAGS -- function to set the flags for different groups of opcodes
+// CHECK FLAGS -- function to set the flags for different groups of opcodes
 
-// sets specific flags depending on the binary value given by flagMask
-void setFlags(State *state, uint16_t value, uint8_t flagMask) {
+// checks and then sets specific flags depending on the binary value given by flagMask
+void checkFlags(State *state, uint16_t value, uint8_t flagMask) {
 
     if (flagMask & Z_FLAG) {
         state->cc.z = checkZero(value);
@@ -104,6 +112,29 @@ void setFlags(State *state, uint16_t value, uint8_t flagMask) {
     if (flagMask & CY_FLAG) {
         state->cc.cy = checkCarry(value);
     }
+}
+
+// SET AND GET FLAGS
+
+uint8_t getFlags(State *state) {
+    uint8_t flags = 0;
+
+    flags |= (state->cc.s << 7);
+    flags |= (state->cc.z << 6);
+    flags |= (state->cc.ac << 4);
+    flags |= (state->cc.p << 2);
+    flags |= (state->cc.cy << 0);
+
+    return flags;
+}
+
+void setFlags(State *state, uint8_t flags) {
+
+    state->cc.s  = (flags >> 7) & 0x1;
+    state->cc.z  = (flags >> 6) & 0x1;
+    state->cc.ac = (flags >> 4) & 0x1;
+    state->cc.p  = (flags >> 2) & 0x1;
+    state->cc.cy = (flags >> 0) & 0x1;
 }
 
 // MAKE WORD -- This section is anything relating to the creation of a word (2 bytes) from byte pairs
@@ -120,6 +151,14 @@ void splitWordToBytes(uint8_t *highByte, uint8_t *lowByte, uint16_t word) {
     *lowByte = word & 0xff;
 }
 
+uint8_t getHighByte(uint16_t value) {
+    return (value >> 8) & 0xff;
+}
+
+uint8_t getLowByte(uint16_t value) {
+    return value & 0xff;
+}
+
 // returns the byte at a certain index in the memory of the state machine
 uint8_t readByte(State *state, uint16_t index) {
     if (index >= MAX_MEMORY_SIZE) {
@@ -129,6 +168,10 @@ uint8_t readByte(State *state, uint16_t index) {
     return state -> memory[index];
 }
 
+uint8_t readByteAtSP(State *state) {
+    return readByte(state, state -> sp);
+}
+
 // inserts byte into a certain index in the memory array
 void writeByte(State *state, uint16_t index, uint8_t value) {
     if (index >= MAX_MEMORY_SIZE) {
@@ -136,6 +179,11 @@ void writeByte(State *state, uint16_t index, uint8_t value) {
         exit(EXIT_FAILURE);
     }
     state->memory[index] = value;
+}
+
+// inserts byte into the stack pointer
+void writeByteAtSP(State *state, uint8_t value) {
+    writeByte(state, state -> sp, value);
 }
 
 uint8_t nextByte(State *state){
@@ -195,48 +243,49 @@ uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_
 
 void add(State *state, uint8_t value) {
     uint16_t data = (state -> a) + value;
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
 void adc(State *state, uint8_t value) {
     uint16_t data = (state -> a) + value + (state -> cc.cy);
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
 void sub(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value;
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
 void sbb(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value - (state -> cc.cy);
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
 void cmp(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value;
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
 }
 
 void ana(State *state, uint8_t value) {
     uint16_t data = (state -> a) & value;
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
+    state -> a = (uint8_t)data;
+}
+
+
+void ora(State *state, uint8_t value) {
+    uint16_t data = (state -> a) | value;
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
 void xra(State *state, uint8_t value) {
     uint16_t data = (state -> a) ^ value;
-    setFlags(state, data, ALL_FLAGS);
-    state -> a = (uint8_t)data;
-}
-
-void ora(State *state, uint8_t value) {
-    uint16_t data = (state -> a) | value;
-    setFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS);
     state -> a = (uint8_t)data;
 }
 
@@ -255,7 +304,7 @@ void inx(State *state, uint16_t *value) {
 
 void inr(State *state, uint8_t *value) {
     uint8_t result = *value + 1;
-    setFlags(state, result, INCREMENT_FLAGS);
+    checkFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
 }
 
@@ -274,7 +323,7 @@ void dcx(State *state, uint16_t *value) {
 
 void dcr(State *state, uint8_t *value) {
     uint8_t result = *value - 1;
-    setFlags(state, result, INCREMENT_FLAGS);
+    checkFlags(state, result, INCREMENT_FLAGS);
     *value = result; // discards the first 8 bits
 };
 
@@ -308,10 +357,227 @@ void lhld(State *state, uint16_t address) {
     state -> h = readByte(state, address + 1);
 }
 
-void mov(State* state, uint8_t *dest, uint8_t src) {
+void mov(State *state, uint8_t *dest, uint8_t src) {
     *dest = src;
 }
 
+
+// STACK INSTRUCTIONS
+
+// stack arithmethic function
+// incremnetValue can be positive or negative
+void stackArithmethic(State *state, uint16_t incrementValue) {
+    state -> sp += incrementValue;
+    if (state -> sp > STACK_TOP) {
+        printf("Stack overflow error: %d", state -> sp);
+        exit(EXIT_FAILURE);
+    }
+    else if (state -> sp < STACK_BOTTOM) {
+        printf("Stack underflow error: %d", state -> sp);
+        exit(EXIT_FAILURE);
+    }
+}
+
+// takes stack pointer and stores them into a register pair
+void popIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
+    *lowByte = readByteAtSP(state);
+    stackArithmethic(state, 1);
+    *highByte= readByteAtSP(state);
+    stackArithmethic(state, 1);
+}
+
+
+// takes stack pointer and stores them into a register pair
+void pop(State *state, uint16_t *value) {
+    uint8_t lowByte = readByteAtSP(state);
+    stackArithmethic(state, 1);
+    uint8_t highByte= readByteAtSP(state);
+    stackArithmethic(state, 1);
+    *value = combineBytesToWord(highByte, lowByte);
+}
+
+// pushes register pair onto the stack
+void pushIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
+    stackArithmethic(state, -1);
+    *highByte= readByteAtSP(state);
+    stackArithmethic(state, -1);
+    *lowByte = readByteAtSP(state);
+}
+
+void push(State *state, uint16_t value) {
+    stackArithmethic(state, -1);
+    writeByteAtSP(state, getHighByte(value));
+    stackArithmethic(state, -1);
+    writeByteAtSP(state, getLowByte(value));
+}
+
+
+// RETURN INSTRUCTIONS
+
+void ret(State *state) {
+    pop(state, &state -> pc);
+}
+
+void conditionalReturn(State *state, uint8_t condition) {
+    if (condition) ret(state);
+}
+
+// return if value is 0
+void rnz(State *state) {
+    conditionalReturn(state, state -> cc.z == 0);
+}
+
+// return if value is 1
+void rz(State *state) {
+    conditionalReturn(state, state -> cc.z == 1);
+}
+
+// return if carry bit is not set
+void rnc(State *state) {
+    conditionalReturn(state, state -> cc.cy == 0);
+}
+
+// return if carry bit is set
+void rc(State *state) {
+    conditionalReturn(state, state -> cc.cy == 1);
+}
+
+// return if positive (sign bit is 0)
+void rp(State *state) {
+    conditionalReturn(state, state -> cc.s == 0);
+}
+
+// return if negative (sign bit is 1)
+void rm(State *state) {
+    conditionalReturn(state, state -> cc.s == 1);
+}
+
+// return if odd parity (parity bit is 0)
+void rpo(State *state) {
+    conditionalReturn(state, state -> cc.p == 0);
+}
+
+// return if even parity (parity bit is 1)
+void rpe(State *state) {
+    conditionalReturn(state, state -> cc.p == 1);
+}
+
+// JUMP INSTRUCTIONS
+
+void jmp(State *state, uint16_t addr) {
+    state -> pc = addr;
+}
+
+void conditionalJump(State *state, uint16_t addr, uint8_t condition) {
+    if (condition) {
+        jmp(state, addr);
+    } else {
+        state -> pc += 3;
+    }
+}
+
+// jump if value is 0
+void jnz(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.z == 0);
+}
+
+// jump if value is 1
+void jz(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.z == 1);
+}
+
+// jump if carry bit is not set
+void jnc(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.cy == 0);
+}
+
+// jump if carry bit is set
+void jc(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.cy == 1);
+}
+
+// jump if positive (sign bit is 0)
+void jp(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.s == 0);
+}
+
+// jump if negative (sign bit is 1)
+void jm(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.s == 1);
+}
+
+// jump if odd parity (parity bit is 0)
+void jpo(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.p == 0);
+}
+
+// jump if even parity (parity bit is 1)
+void jpe(State *state, uint16_t addr) {
+    conditionalJump(state, addr, state -> cc.p == 1);
+}
+
+
+// CALL INSTRUCTIONS
+
+void call(State *state, uint16_t addr) {
+    push(state, state -> pc); // pushes the return address to the stack
+    jmp(state, addr);
+}
+
+void conditionalCall(State *state, uint16_t addr, uint8_t condition) {
+    if (condition) {
+        call(state, addr);
+    } else {
+        state -> pc += 3;
+    }
+}
+
+// call if value is 0
+void cnz(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.z == 0);
+}
+
+// call if value is 1
+void cz(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.z == 1);
+}
+
+// call if carry bit is not set
+void cnc(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.cy == 0);
+}
+
+// call if carry bit is set
+void cc(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.cy == 1);
+}
+
+// call if positive (sign bit is 0)
+void cp(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.s == 0);
+}
+
+// call if negative (sign bit is 1)
+void cm(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.s == 1);
+}
+
+// call if odd parity (parity bit is 0)
+void cpo(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.p == 0);
+}
+
+// call if even parity (parity bit is 1)
+void cpe(State *state, uint16_t addr) {
+    conditionalCall(state, addr, state -> cc.p == 1);
+}
+
+
+// INTERRUPT INSTRUCTIONS
+
+void rst(State *state, uint8_t n) {
+    call(state, 8 * n);
+}
 
 void Emulate(State *state) {
     unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
@@ -1023,6 +1289,302 @@ void Emulate(State *state) {
             break;
         case 0xbf:
             cmp(state, state -> a);
+            break;
+
+        // rnz
+        case 0xc0:
+            rnz(state);
+            break;
+
+        // pop b
+        case 0xc1:
+            popIntoRegPair(state, &state -> b, &state -> c);
+            break;
+
+        case 0xc2:
+            jnz(state, nextWord(state));
+            break;
+
+        case 0xc3:
+            jmp(state, nextWord(state));
+            break;
+
+        case 0xc4:
+            cnz(state, nextWord(state));
+            break;
+
+        case 0xc5:
+            pushIntoRegPair(state, &state -> b, &state -> c);
+            break;
+
+        case 0xc6:
+            add(state, nextByte(state));
+            break;
+
+        case 0xc7:
+            rst(state, 0);
+            break;
+
+        // rz
+        case 0xc8:
+            rz(state);
+            break;
+
+        // ret
+        case 0xc9:
+            ret(state);
+            break;
+
+        case 0xca:
+            jz(state, nextWord(state));
+            break;
+
+        case 0xcb:
+            UnimplementedInstruction(state, 0xcb);
+
+        case 0xcc:
+            cz(state, nextWord(state));
+            break;
+
+        case 0xcd:
+            call(state, nextWord(state));
+            break;
+
+        case 0xce:
+            adc(state, nextWord(state));
+
+        case 0xcf:
+            rst(state, 1);
+            break;
+
+        // rnc
+        case 0xd0:
+            rnc(state);
+            break;
+
+        case 0xd1:
+            popIntoRegPair(state, &state -> d, &state -> e);
+            break;
+
+        case 0xd2:
+            jnc(state, nextWord(state));
+            break;
+
+        // TODO -- OUT instruction only works with external hardware
+        case 0xd3:
+            UnimplementedInstruction(state, 0xd3);
+
+        case 0xd4:
+            cnc(state, nextWord(state));
+            break;
+
+        case 0xd5:
+            pushIntoRegPair(state, &state -> d, &state -> e);
+            break;
+
+        // sui instruction
+        case 0xd6:
+            sub(state, nextByte(state));
+            break;
+
+        case 0xd7:
+            rst(state, 2);
+            break;
+
+        case 0xd8:
+            rc(state);
+            break;
+
+        case 0xd9:
+            UnimplementedInstruction(state, 0xd9);
+
+        case 0xda:
+            jc(state, nextWord(state));
+            break;
+
+        // TODO -- IN instruction only works with external hardware
+        case 0xdb:
+            UnimplementedInstruction(state, 0xdb);
+
+        case 0xdc:
+            cc(state, nextWord(state));
+            break;
+
+        case 0xdd:
+            UnimplementedInstruction(state, 0xdd);
+
+        case 0xde:
+            sbb(state, nextWord(state));
+            break;
+
+        case 0xdf:
+            rst(state, 3);
+            break;
+
+        case 0xe0:
+            rpo(state);
+            break;
+
+        case 0xe1:
+            popIntoRegPair(state, &state -> h, &state -> l);
+            break;
+
+        case 0xe2:
+            jpo(state, nextWord(state));
+            break;
+
+        // xthl
+        case 0xe3:
+            {
+                // swap register l and byte pointed at stack pointer
+                uint8_t temp = state -> l;
+                mov(state, &state -> l, readByteAtSP(state));
+                writeByteAtSP(state, temp);
+
+                // swap register h and byte pointed at stack pointer + 1
+                temp = state -> h;
+                mov(state, &state -> h, readByte(state, state -> sp + 1));
+                writeByte(state, state -> sp + 1, temp);
+            }
+            break;
+
+        case 0xe4:
+            cpo(state, nextWord(state));
+            break;
+
+        case 0xe5:
+            pushIntoRegPair(state, &state -> h, &state -> l);
+            break;
+
+        case 0xe6:
+            ana(state, nextWord(state));
+            break;
+
+        case 0xe7:
+            rst(state, 4);
+            break;
+
+        case 0xe8:
+            rpe(state);
+            break;
+
+        // pchl
+        case 0xe9:
+            writeDirectFromWord(state, &state -> pc, combineBytesToWord(state -> h, state -> l));
+            break;
+
+        case 0xea:
+            jpe(state, nextWord(state));
+            break;
+
+        // xchg
+        case 0xeb:
+            {
+                // swap register h and d
+                uint8_t temp = state -> h;
+                mov(state, &state -> h, state -> d);
+                mov(state, &state -> d, temp);
+
+                // swap register l and e
+                temp = state -> l;
+                mov(state, &state -> l, state -> e);
+                mov(state, &state -> e, temp);
+            }
+            break;
+
+        case 0xec:
+            cpe(state, nextWord(state));
+            break;
+
+        case 0xed:
+            UnimplementedInstruction(state, 0xed);
+
+        case 0xee:
+            xra(state, nextWord(state));
+            break;
+
+        case 0xef:
+            rst(state, 5);
+            break;
+
+        case 0xf0:
+            rp(state);
+            break;
+
+        // popPSW
+        case 0xf1:
+            {
+                setFlags(state, readByteAtSP(state));
+                stackArithmethic(state, 1);
+                writeByte(state, state -> a, readByteAtSP(state));
+                stackArithmethic(state, 1);
+            }
+
+            break;
+
+        case 0xf2:
+            jp(state, nextWord(state));
+            break;
+
+        // TODO -- DI instruction only works with external hardware
+        case 0xf3:
+            UnimplementedInstruction(state, 0xf3);
+
+        case 0xf4:
+            cp(state, nextWord(state));
+            break;
+
+        // pushPSW
+        case 0xf5:
+            {
+                uint8_t flags = getFlags(state);
+                stackArithmethic(state, -1);
+                // push flags
+                writeByteAtSP(state, flags);
+                stackArithmethic(state, -1);
+                // push accumulator
+                writeByteAtSP(state, state -> a);
+            }
+            break;
+
+        case 0xf6:
+            ora(state, nextWord(state));
+            break;
+
+        case 0xf7:
+            rst(state, 6);
+            break;
+
+        case 0xf8:
+            rm(state);
+            break;
+
+        // sphl
+        case 0xf9:
+            state -> sp = (state -> h << 8) | (state -> l);
+            break;
+
+        case 0xfa:
+            jm(state, nextWord(state));
+            break;
+
+        // TODO -- EI instruction only works with external hardware
+        case 0xfb:
+            UnimplementedInstruction(state, 0xfb);
+
+        case 0xfc:
+            cm(state, nextWord(state));
+            break;
+
+        case 0xfd:
+            UnimplementedInstruction(state, 0xfd);
+
+        case 0xfe:
+            cmp(state, nextWord(state));
+            break;
+
+        case 0xff:
+            rst(state, 7);
             break;
 
 
