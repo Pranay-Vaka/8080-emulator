@@ -33,7 +33,7 @@ typedef struct State {
     uint16_t pc;
     uint8_t *memory; // this is an array that stores integers.
     struct ConditionCodes cc;
-    uint8_t int_enable;
+    uint8_t interruptEnabled;
 } State;
 
 
@@ -1526,9 +1526,10 @@ void Emulate(State *state) {
             jp(state, nextWord(state));
             break;
 
-        // TODO -- DI instruction only works with external hardware
+        // DI instruction
         case 0xf3:
-            UnimplementedInstruction(state, 0xf3);
+            state -> interruptEnabled = 0;
+            break;
 
         case 0xf4:
             cp(state, nextWord(state));
@@ -1568,9 +1569,10 @@ void Emulate(State *state) {
             jm(state, nextWord(state));
             break;
 
-        // TODO -- EI instruction only works with external hardware
+        // EI instruction
         case 0xfb:
-            UnimplementedInstruction(state, 0xfb);
+            state -> interruptEnabled = 1;
+            break;
 
         case 0xfc:
             cm(state, nextWord(state));
