@@ -47,6 +47,16 @@ void UnimplementedInstruction(State *state, uint8_t opcode) {
     exit(EXIT_FAILURE);
 }
 
+void outputStateValues(State *state) {
+    /* print out processor state */
+    printf("\tC=%d,P=%d,S=%d,Z=%d\n", state->cc.cy, state->cc.p,
+        state->cc.s, state->cc.z);
+    printf("\tA $%02x B $%02x C $%02x D $%02x E $%02x H $%02x L $%02x SP %04x\n",
+        state->a, state->b, state->c, state->d,
+        state->e, state->h, state->l, state->sp);
+}
+
+
 // FLAGS -- Constant flags made from bit shifts to manipulate different flags
 
 // bit shifts each of the flags so that it can be logically OR'd to make it 1
@@ -1562,7 +1572,7 @@ void Emulate(State *state) {
 
         // sphl
         case 0xf9:
-            state -> sp = (state -> h << 8) | (state -> l);
+            state -> sp = combineBytesToWord(state -> h, state -> l);
             break;
 
         case 0xfa:

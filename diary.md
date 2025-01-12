@@ -93,3 +93,10 @@ Update: Finally completed the instructions until 0x3f.
 
 ### Thoughts
 Finished all the arithmetic functions
+
+## Date: 2025-01-05
+
+### Thoughts
+Finished all the opcodes until 0xff (YAY). I left certain instructions like the hardware input and
+output opcodes so that I can write the code for them when i understand how to read the rom and also
+how to output to the display.
