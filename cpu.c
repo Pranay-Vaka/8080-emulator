@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 // memory size
 #define MEMORY_SIZE 65536
@@ -345,7 +344,7 @@ void dad(State *state, uint16_t value) {
 }
 
 // dadRegPair opcode that joins two bytes and then adds them to register h and l
-void dadRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
+void dadRegPair(State *state, const uint8_t *highByte, const uint8_t *lowByte) {
     uint16_t value = combineBytesToWord(*highByte, *lowByte);
     dad(state, value);
 }
@@ -1072,7 +1071,6 @@ void Emulate(State *state) {
         case 0x76:
             printf("Halting emulation\n");
             exit(EXIT_SUCCESS);
-            break;
         case 0x77:
             writeMemoryAtHL(state, state -> a);
             break;
