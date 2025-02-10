@@ -1,6 +1,8 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 // memory size
 #define MEMORY_SIZE 65536
@@ -19,7 +21,6 @@ typedef struct ConditionCodes {
     uint8_t pad:3;
 } ConditionCodes;
 
-
 typedef struct State {
     uint8_t a;
     uint8_t b;
@@ -31,19 +32,25 @@ typedef struct State {
     uint16_t sp;
     uint16_t pc;
     uint8_t *memory; // this is an array that stores integers.
-    struct ConditionCodes cc;
+    ConditionCodes cc;
     uint8_t interruptEnabled;
 } State;
 
+State *setupStateMachine() {
+    ConditionCodes *cc = malloc(sizeof(ConditionCodes));
+    State *state = malloc(sizeof(State));
+    state -> cc = *cc;
+    memset(state, 0, sizeof(State));
 
-// this is for any instruction that we have not yet implemented
-void UnimplementedInstruction(State *state, uint8_t opcode) {
-    // Error messages
-    fprintf(stderr, "Error: Unimplemented instruction 0x%02x encountered\n", opcode);
-    fprintf(stderr, "Program counter: %x\n", state -> pc);
+    state -> memory = malloc(0x10000);
 
-    // Terminates the execution
-    exit(EXIT_FAILURE);
+    if (state->memory == NULL) {
+        perror("Failed to allocate memory for emulated system");
+        free(state);
+        exit(EXIT_FAILURE);
+    }
+    memset(state->memory, 0, 0x10000); // Clear the memory
+    return state;
 }
 
 void outputStateValues(State *state) {
@@ -55,6 +62,16 @@ void outputStateValues(State *state) {
         state->e, state->h, state->l, state->sp);
 }
 
+// this is for any instruction that we have not yet implemented
+void UnimplementedInstruction(State *state, uint8_t opcode) {
+    // Error messages
+    fprintf(stderr, "Error: Unimplemented instruction 0x%02x encountered\n", opcode);
+    fprintf(stderr, "Program counter: %x\n", state -> pc);
+    outputStateValues(state);
+
+    // Terminates the execution
+    exit(EXIT_FAILURE);
+}
 
 // FLAGS -- Constant flags made from bit shifts to manipulate different flags
 
@@ -102,7 +119,6 @@ uint8_t checkParity(uint8_t value) {
 uint8_t checkCarry(uint16_t value) {
     return (value > 0xff);
 }
-
 
 // CHECK FLAGS -- function to set the flags for different groups of opcodes
 
@@ -179,6 +195,11 @@ uint8_t readByte(State *state, uint16_t index) {
 
 uint8_t readByteAtSP(State *state) {
     return readByte(state, state -> sp);
+}
+
+// loading memory
+void loadMemory(State *state, uint8_t *memory) {
+    state -> memory = memory;
 }
 
 // inserts byte into a certain index in the memory array
@@ -344,7 +365,7 @@ void dad(State *state, uint16_t value) {
 }
 
 // dadRegPair opcode that joins two bytes and then adds them to register h and l
-void dadRegPair(State *state, const uint8_t *highByte, const uint8_t *lowByte) {
+void dadRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
     uint16_t value = combineBytesToWord(*highByte, *lowByte);
     dad(state, value);
 }
@@ -588,8 +609,21 @@ void rst(State *state, uint8_t n) {
     call(state, 8 * n);
 }
 
+// HANDLE IN AND OUT
+
+void handle_OUT(uint8_t port, uint8_t value) {
+    printf("OUT instruction: Port 0x%02X, Value 0x%02X\n", port, value);
+}
+
+uint8_t handle_IN(uint8_t port) {
+    printf("In instruction: Port 0x%02X requested\n", port);
+    return 0x00;
+}
+
+
 void Emulate(State *state) {
     unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
+    outputStateValues(state);
 
     switch(*opcode) {
         case 0x00: break;
@@ -1071,6 +1105,7 @@ void Emulate(State *state) {
         case 0x76:
             printf("Halting emulation\n");
             exit(EXIT_SUCCESS);
+            break;
         case 0x77:
             writeMemoryAtHL(state, state -> a);
             break;
@@ -1378,9 +1413,13 @@ void Emulate(State *state) {
             jnc(state, nextWord(state));
             break;
 
-        // TODO -- OUT instruction only works with external hardware
+        // OUT instruction only works with external hardware
         case 0xd3:
-            UnimplementedInstruction(state, 0xd3);
+            {
+                uint8_t port = nextByte(state);
+                uint8_t value = readByte(state, state -> a);
+                handle_OUT(port, value);
+            }
 
         case 0xd4:
             cnc(state, nextWord(state));
@@ -1410,9 +1449,14 @@ void Emulate(State *state) {
             jc(state, nextWord(state));
             break;
 
-        // TODO -- IN instruction only works with external hardware
+        // IN instruction only works with external hardware
         case 0xdb:
-            UnimplementedInstruction(state, 0xdb);
+            {
+                uint8_t port = nextByte(state);
+                // handle_IN returns dummy information for now
+                writeByte(state, state -> a, handle_IN(port));
+                break;
+            }
 
         case 0xdc:
             cc(state, nextWord(state));
@@ -1597,9 +1641,48 @@ void Emulate(State *state) {
             rst(state, 7);
             break;
 
-
         default:
             fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
             exit(EXIT_FAILURE);
     }
+}
+
+int main() {
+
+    State *state = setupStateMachine();
+
+    // length of invaders files is 8192
+    size_t file_size = 8192;
+    uint8_t bytes[file_size];
+
+    FILE *file;
+    file = fopen("invaders", "rb");
+
+    // checks if the file exists
+    if (file == NULL) {
+        printf("File returns null");
+        fclose(file);
+        return 0;
+    }    
+
+    size_t romSize = fread(state -> memory, 1, file_size, file);
+    fclose(file);
+
+    if (romSize != 8192) {
+        fprintf(stderr, "Error: ROM size mismatch (expected 8192 bytes, got %zu bytes)\n", romSize);
+        free(state->memory);
+        free(state);
+        exit(EXIT_FAILURE);
+    }
+
+    state -> pc = 0x0000;
+    state -> sp = 0x2400;
+    state -> interruptEnabled = 0;
+    for (int i = 0; i < file_size; i++) {
+        Emulate(state);
+    }
+    printf("-----Emulated successfully-----");
+    free(state->memory);
+    free(state);
+    return 0;
 }

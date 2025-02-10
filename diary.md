@@ -100,3 +100,15 @@ Finished all the arithmetic functions
 Finished all the opcodes until 0xff (YAY). I left certain instructions like the hardware input and
 output opcodes so that I can write the code for them when i understand how to read the rom and also
 how to output to the display.
+
+## Date: 2025-02-09
+
+### Thoughts
+Wrote some dummy functions for the hardware IN (0xDB) and OUT (0xD3) for now. This is just to check if
+the program is working
+
+## Date: 2025-02-09
+
+### Thoughts
+Made the code to load the game into memory, setup the state machine and iterate over the code. It seems
+to be iterating over all the instructions, but is not updating the registers. Will fix this next time
