@@ -1649,6 +1649,7 @@ void Emulate(State *state) {
 
 int main() {
 
+    // sets up the intial state machine
     State *state = setupStateMachine();
 
     // length of invaders files is 8192
@@ -1663,7 +1664,7 @@ int main() {
         printf("File returns null");
         fclose(file);
         return 0;
-    }    
+    }
 
     size_t romSize = fread(state -> memory, 1, file_size, file);
     fclose(file);
@@ -1679,7 +1680,7 @@ int main() {
     state -> sp = 0x2400;
     state -> interruptEnabled = 0;
     for (int i = 0; i < file_size; i++) {
-        Emulate(state);
+        // Emulate(state);
     }
     printf("-----Emulated successfully-----");
     free(state->memory);

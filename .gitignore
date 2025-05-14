@@ -2,3 +2,4 @@ disassembler
 TODO.txt
 .idea/
 .vscode/
+.cache/
