@@ -3,3 +3,7 @@ TODO.txt
 .idea/
 .vscode/
 .cache/
+.DS_Store/
+cpu.out
+disassembler
+cmake-build-debug/

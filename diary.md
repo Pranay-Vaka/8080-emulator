@@ -112,3 +112,16 @@ the program is working
 ### Thoughts
 Made the code to load the game into memory, setup the state machine and iterate over the code. It seems
 to be iterating over all the instructions, but is not updating the registers. Will fix this next time
+
+## Date: 2025-05-17
+
+### Thoughts
+I am stupid. I outputed the state machine and the opcode at every iteration and then checked the
+opcode and the states. It is because i did not even load the game file into the states memory.
+
+## Date: 2025-05-18
+
+### Thoughts
+Loaded the game into the memory, and from the documentation it seems that the game starts from 0 in
+memory. When I run the code through the switch statement, the last opcodes that I see are all ones.
+I guess that is because it is going through all the memory. I don't really know

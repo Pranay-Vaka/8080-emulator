@@ -40,7 +40,7 @@ State *setupStateMachine() {
     ConditionCodes *cc = malloc(sizeof(ConditionCodes));
     State *state = malloc(sizeof(State));
     state -> cc = *cc;
-    memset(state, 0, sizeof(State));
+    memset(state, 0, sizeof(State)); // fills the state machine with zeroes
 
     state -> memory = malloc(0x10000);
 
@@ -49,7 +49,7 @@ State *setupStateMachine() {
         free(state);
         exit(EXIT_FAILURE);
     }
-    memset(state->memory, 0, 0x10000); // Clear the memory
+    memset(state->memory, 0, 0x10000); // Clear the memory upto the address of 0x10000
     return state;
 }
 
@@ -622,10 +622,14 @@ uint8_t handle_IN(uint8_t port) {
 
 
 void Emulate(State *state) {
-    unsigned char *opcode = &(state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
-    outputStateValues(state);
+    unsigned char opcode = (state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
+    // printf("PC value: %d\n", state -> pc);
+    // printf("Opcode is %u\n", opcode);
+    // outputStateValues(state);
 
-    switch(*opcode) {
+
+
+    switch(opcode) {
         case 0x00: break;
         case 0x01:
             lxiRegPair(state, &state -> b, &state -> c, nextWord(state));
@@ -659,7 +663,7 @@ void Emulate(State *state) {
         }
 
         case 0x08:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
         case 0x09:
@@ -698,7 +702,7 @@ void Emulate(State *state) {
         }
 
         case 0x10:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
         case 0x11:
@@ -734,7 +738,7 @@ void Emulate(State *state) {
        }
 
         case 0x18:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
         case 0x19:
@@ -770,7 +774,7 @@ void Emulate(State *state) {
         }
 
         case 0x20:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
 
@@ -818,7 +822,7 @@ void Emulate(State *state) {
             break;
 
         case 0x28:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
         case 0x29:
@@ -853,7 +857,7 @@ void Emulate(State *state) {
             break;
 
         case 0x30:
-            UnimplementedInstruction(state, *opcode);
+            UnimplementedInstruction(state, opcode);
             break;
 
         case 0x31:
@@ -1642,48 +1646,76 @@ void Emulate(State *state) {
             break;
 
         default:
-            fprintf(stderr, "Unknown opcode: 0x%02x\n", *opcode);
+            fprintf(stderr, "Unknown opcode: 0x%02x\n", opcode);
             exit(EXIT_FAILURE);
     }
 }
+
+
+// loads memory into state memory
+void loadRom(const char* filename, size_t fileSize, State *state) {
+    // contains the games binary
+    uint8_t gameBinary[fileSize];
+
+    // opens the file
+    FILE *file;
+    file = fopen(filename, "rb");
+
+    // checks if the file exists
+    if (file == NULL) {
+        printf("File returns null");
+        fclose(file);
+        exit(1);
+    }
+
+    // gets the size of the file into memory
+    size_t romSize = fread(gameBinary, 1, fileSize, file);
+    printf("Rom size is %zu\n", romSize);
+    fclose(file);
+
+    // check if the size matches
+    if (romSize != 8192) {
+        fprintf(stderr, "Error: ROM size mismatch (expected 8192 bytes, got %zu bytes)\n", romSize);
+        exit(1);
+    }
+
+    // writes the game file into memory
+    for(int i = 0; i < fileSize; i++) {
+        // printf("Index %d = Opcode %d\n", i, gameBinary[i]);
+        writeByte(state, i, gameBinary[i]);
+    }
+
+}
+
+// stores the games metadata
+struct gameMetadata {
+    size_t fileSize;
+    const char* filename;
+};
 
 int main() {
 
     // sets up the intial state machine
     State *state = setupStateMachine();
 
-    // length of invaders files is 8192
-    size_t file_size = 8192;
-    uint8_t bytes[file_size];
+    // stores the invaders metadata
+    struct gameMetadata invadersGameMetadata;
+    invadersGameMetadata.fileSize = 8192;
+    invadersGameMetadata.filename = "invaders";
 
-    FILE *file;
-    file = fopen("invaders", "rb");
+    loadRom(invadersGameMetadata.filename, invadersGameMetadata.fileSize, state);
 
-    // checks if the file exists
-    if (file == NULL) {
-        printf("File returns null");
-        fclose(file);
-        return 0;
-    }
-
-    size_t romSize = fread(state -> memory, 1, file_size, file);
-    fclose(file);
-
-    if (romSize != 8192) {
-        fprintf(stderr, "Error: ROM size mismatch (expected 8192 bytes, got %zu bytes)\n", romSize);
-        free(state->memory);
-        free(state);
-        exit(EXIT_FAILURE);
-    }
-
+    // initialise the pointer values
     state -> pc = 0x0000;
     state -> sp = 0x2400;
     state -> interruptEnabled = 0;
-    for (int i = 0; i < file_size; i++) {
-        // Emulate(state);
+
+    printf("The opcode at 8189 in memory is %d\n", state -> memory[8189]);
+    // run the program loop
+    for (int i = 0; i < invadersGameMetadata.fileSize; i++) {
+
+        Emulate(state);
     }
-    printf("-----Emulated successfully-----");
-    free(state->memory);
-    free(state);
+    printf("-----Emulated successfully-----\n");
     return 0;
 }
