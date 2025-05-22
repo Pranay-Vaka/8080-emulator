@@ -1663,7 +1663,7 @@ void loadRom(const char* filename, size_t fileSize, State *state) {
 
     // checks if the file exists
     if (file == NULL) {
-        printf("File returns null");
+        printf("File returns null\n");
         fclose(file);
         exit(1);
     }

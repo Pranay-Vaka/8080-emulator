@@ -1,3 +1,0 @@
-/home/pranay/Documents/emulation/8080/cmake-build-debug/CMakeFiles/8080.dir
-/home/pranay/Documents/emulation/8080/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/pranay/Documents/emulation/8080/cmake-build-debug/CMakeFiles/rebuild_cache.dir
