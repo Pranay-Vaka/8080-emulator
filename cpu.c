@@ -620,9 +620,11 @@ uint8_t handle_IN(uint8_t port) {
     return 0x00;
 }
 
+static int hitCount = 0;
 
 void Emulate(State *state) {
     unsigned char opcode = (state -> memory[state->pc++]); // the opcode is indicated by the program counter's index in memory
+    hitCount = state -> pc;
     // printf("PC value: %d\n", state -> pc);
     // printf("Opcode is %u\n", opcode);
     // outputStateValues(state);

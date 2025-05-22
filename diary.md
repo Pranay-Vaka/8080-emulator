@@ -125,3 +125,12 @@ opcode and the states. It is because i did not even load the game file into the 
 Loaded the game into the memory, and from the documentation it seems that the game starts from 0 in
 memory. When I run the code through the switch statement, the last opcodes that I see are all ones.
 I guess that is because it is going through all the memory. I don't really know
+
+## Date: 2025-05-23
+
+### Thoughts
+Note to self. Do not ever write large slews of code without writing unit tests. Another thing i
+learnt is using debuggers are actually amazing. I get an insight into the code without having to
+recompile all over again. Right now what I did was take a look into the pc and opcodes once the
+program ran to 8189. It's giving me weird stuff. But great practice for when I use debuggers
+properly
