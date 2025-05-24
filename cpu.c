@@ -37,19 +37,41 @@ typedef struct State {
 } State;
 
 State *setupStateMachine() {
-    ConditionCodes *cc = malloc(sizeof(ConditionCodes));
+
+    // This allocates the memory for the state
     State *state = malloc(sizeof(State));
-    state -> cc = *cc;
+    if (state == NULL) {
+        perror("Failed to allocate memory of the CPU");
+    }
     memset(state, 0, sizeof(State)); // fills the state machine with zeroes
 
-    state -> memory = malloc(0x10000);
-
+    // Allocates memory for the emulated systems memory
+    state -> memory = malloc(0x10000); // 64KB of memory
     if (state->memory == NULL) {
         perror("Failed to allocate memory for emulated system");
         free(state);
         exit(EXIT_FAILURE);
     }
-    memset(state->memory, 0, 0x10000); // Clear the memory upto the address of 0x10000
+    memset(state->memory, 0, 0x10000); // clears all 64KB of memory
+
+    // Initialise the condition codes with 0
+    state->cc.z = 0;
+    state->cc.s = 0;
+    state->cc.p = 0;
+    state->cc.cy = 0;
+    state->cc.ac = 0;
+
+    // Initialise the registers and state variables with 0
+    state->a = 0;
+    state->b = 0;
+    state->c = 0;
+    state->d = 0;
+    state->e = 0;
+    state->h = 0;
+    state->l = 0;
+    state->sp = 0;
+    state->pc = 0;
+
     return state;
 }
 
@@ -1683,7 +1705,6 @@ void loadRom(const char* filename, size_t fileSize, State *state) {
 
     // writes the game file into memory
     for(int i = 0; i < fileSize; i++) {
-        // printf("Index %d = Opcode %d\n", i, gameBinary[i]);
         writeByte(state, i, gameBinary[i]);
     }
 
