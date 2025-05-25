@@ -5,7 +5,7 @@
 #include <string.h>
 
 // memory size
-#define MEMORY_SIZE 65536
+#define MEMORY_SIZE 0x10000 // 65536 bytes
 #define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
 
 // stack size
@@ -418,8 +418,10 @@ void mov(State *state, uint8_t *dest, uint8_t src) {
 
 // stack arithmethic function
 // incremnetValue can be positive or negative
-void stackArithmethic(State *state, uint16_t incrementValue) {
+void stackArithmetic(State *state, uint16_t incrementValue) {
     state -> sp += incrementValue;
+    // Apparently the hardware just wraps addresses, so we don't need the whole wrap stuff
+    /*
     if (state -> sp > STACK_TOP) {
         printf("Stack overflow error: %d", state -> sp);
         exit(EXIT_FAILURE);
@@ -428,38 +430,43 @@ void stackArithmethic(State *state, uint16_t incrementValue) {
         printf("Stack underflow error: %d", state -> sp);
         exit(EXIT_FAILURE);
     }
+    */
 }
 
 // takes stack pointer and stores them into a register pair
 void popIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
     *lowByte = readByteAtSP(state);
-    stackArithmethic(state, 1);
+    stackArithmetic(state, 1);
     *highByte= readByteAtSP(state);
-    stackArithmethic(state, 1);
+    stackArithmetic(state, 1);
 }
 
 
 // takes stack pointer and stores them into a register pair
 void pop(State *state, uint16_t *value) {
+    /*
     uint8_t lowByte = readByteAtSP(state);
-    stackArithmethic(state, 1);
+    stackArithmetic(state, 1);
     uint8_t highByte= readByteAtSP(state);
-    stackArithmethic(state, 1);
+    stackArithmetic(state, 1);
     *value = combineBytesToWord(highByte, lowByte);
+    */
+
+    *value = readByteAtSP(state) | (readByte(state, state->sp+1) << 8);
+    stackArithmetic(state, 2);
 }
 
 // pushes register pair onto the stack
 void pushIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
-    stackArithmethic(state, -1);
+    stackArithmetic(state, -1);
     *highByte= readByteAtSP(state);
-    stackArithmethic(state, -1);
+    stackArithmetic(state, -1);
     *lowByte = readByteAtSP(state);
 }
 
 void push(State *state, uint16_t value) {
-    stackArithmethic(state, -1);
-    writeByteAtSP(state, getHighByte(value));
-    stackArithmethic(state, -1);
+    stackArithmetic(state, -2);
+    writeByte(state, state->sp + 1, getHighByte(value));
     writeByteAtSP(state, getLowByte(value));
 }
 
@@ -1595,9 +1602,9 @@ void Emulate(State *state) {
         case 0xf1:
             {
                 setFlags(state, readByteAtSP(state));
-                stackArithmethic(state, 1);
+                stackArithmetic(state, 1);
                 writeByte(state, state -> a, readByteAtSP(state));
-                stackArithmethic(state, 1);
+                stackArithmetic(state, 1);
             }
 
             break;
@@ -1619,10 +1626,10 @@ void Emulate(State *state) {
         case 0xf5:
             {
                 uint8_t flags = getFlags(state);
-                stackArithmethic(state, -1);
+                stackArithmetic(state, -1);
                 // push flags
                 writeByteAtSP(state, flags);
-                stackArithmethic(state, -1);
+                stackArithmetic(state, -1);
                 // push accumulator
                 writeByteAtSP(state, state -> a);
             }
@@ -1698,8 +1705,8 @@ void loadRom(const char* filename, size_t fileSize, State *state) {
     fclose(file);
 
     // check if the size matches
-    if (romSize != 8192) {
-        fprintf(stderr, "Error: ROM size mismatch (expected 8192 bytes, got %zu bytes)\n", romSize);
+    if (romSize != fileSize) {
+        fprintf(stderr, "Error: ROM size mismatch (expected %zu bytes, got %zu bytes)\n", fileSize, romSize);
         exit(1);
     }
 
