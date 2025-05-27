@@ -104,8 +104,8 @@ void UnimplementedInstruction(State *state, uint8_t opcode) {
 #define P_FLAG (1<<2)
 #define CY_FLAG (1<<0)
 #define INCREMENT_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used for only the increment and decrement functions
-#define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
-#define NON_CARRY_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
+#define ALL_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG) // used to set all the flags as true (for the arithmetic instructions)
+#define NON_CARRY_FLAGS (Z_FLAG | S_FLAG | P_FLAG) // used to set all the flags as true (for the logic instructions)
 #define PSW_FLAGS (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG | AC_FLAG) // used to set all the flags as true (for the arithmetic and logic instructions)
 
 
@@ -305,6 +305,8 @@ uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_
 
 // ARITHMETIC GROUP -- instructions for the arithmetic values in the isa
 
+// ARITHMETHIC methods 
+
 void add(State *state, uint8_t value) {
     uint16_t data = (state -> a) + value;
     checkFlags(state, data, ALL_FLAGS, 0);
@@ -334,22 +336,26 @@ void cmp(State *state, uint8_t value) {
     checkFlags(state, data, ALL_FLAGS, 1);
 }
 
+// LOGICAL methods
+
 void ana(State *state, uint8_t value) {
     uint16_t data = (state -> a) & value;
-    checkFlags(state, data, ALL_FLAGS, 0);
+    state->cc.cy = 0; // logical methods clear the carry flag
+    checkFlags(state, data, NON_CARRY_FLAGS, 0); // make sure not to alter the carry flag as it is cleared
     state -> a = (uint8_t)data;
 }
 
-
 void ora(State *state, uint8_t value) {
     uint16_t data = (state -> a) | value;
-    checkFlags(state, data, ALL_FLAGS, 0);
+    state->cc.cy = 0;
+    checkFlags(state, data, NON_CARRY_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
 void xra(State *state, uint8_t value) {
     uint16_t data = (state -> a) ^ value;
-    checkFlags(state, data, ALL_FLAGS, 0);
+    state->cc.cy = 0;
+    checkFlags(state, data, NON_CARRY_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
