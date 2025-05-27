@@ -31,7 +31,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/ar"
+			"value" : "/usr/bin/ar"
 		},
 		{
 			"name" : "CMAKE_BUILD_TYPE",
@@ -39,11 +39,11 @@
 			[
 				{
 					"name" : "HELPSTRING",
-					"value" : "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ..."
+					"value" : "No help, variable specified on the command line."
 				}
 			],
 			"type" : "STRING",
-			"value" : ""
+			"value" : "Debug"
 		},
 		{
 			"name" : "CMAKE_CACHEFILE_DIR",
@@ -94,22 +94,6 @@
 			"value" : "1"
 		},
 		{
-			"name" : "CMAKE_COLOR_MAKEFILE",
-			"properties" : 
-			[
-				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
-					"name" : "HELPSTRING",
-					"value" : "Enable/Disable color output during build."
-				}
-			],
-			"type" : "BOOL",
-			"value" : "ON"
-		},
-		{
 			"name" : "CMAKE_COMMAND",
 			"properties" : 
 			[
@@ -155,11 +139,11 @@
 				},
 				{
 					"name" : "HELPSTRING",
-					"value" : "CXX compiler"
+					"value" : "No help, variable specified on the command line."
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/c++"
+			"value" : "/usr/bin/clang++"
 		},
 		{
 			"name" : "CMAKE_CXX_FLAGS",
@@ -251,11 +235,11 @@
 				},
 				{
 					"name" : "HELPSTRING",
-					"value" : "C compiler"
+					"value" : "No help, variable specified on the command line."
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/cc"
+			"value" : "/usr/bin/clang"
 		},
 		{
 			"name" : "CMAKE_C_FLAGS",
@@ -462,16 +446,12 @@
 			"properties" : 
 			[
 				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
 					"name" : "HELPSTRING",
-					"value" : "Enable/Disable output of compile commands during generation."
+					"value" : "No help, variable specified on the command line."
 				}
 			],
 			"type" : "BOOL",
-			"value" : ""
+			"value" : "TRUE"
 		},
 		{
 			"name" : "CMAKE_EXTRA_GENERATOR",
@@ -507,7 +487,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "Unix Makefiles"
+			"value" : "Ninja"
 		},
 		{
 			"name" : "CMAKE_GENERATOR_INSTANCE",
@@ -599,7 +579,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/ld"
+			"value" : "/usr/bin/ld"
 		},
 		{
 			"name" : "CMAKE_MAKE_PROGRAM",
@@ -611,11 +591,11 @@
 				},
 				{
 					"name" : "HELPSTRING",
-					"value" : "Path to a program."
+					"value" : "Program used to build from build.ninja files."
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/usr/bin/make"
+			"value" : "/opt/homebrew/bin/ninja"
 		},
 		{
 			"name" : "CMAKE_MODULE_LINKER_FLAGS",
@@ -711,7 +691,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/nm"
+			"value" : "/usr/bin/nm"
 		},
 		{
 			"name" : "CMAKE_NUMBER_OF_MAKEFILES",
@@ -755,7 +735,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/objdump"
+			"value" : "/usr/bin/objdump"
 		},
 		{
 			"name" : "CMAKE_OSX_ARCHITECTURES",
@@ -855,7 +835,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/ranlib"
+			"value" : "/usr/bin/ranlib"
 		},
 		{
 			"name" : "CMAKE_READELF",
@@ -1091,7 +1071,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/Library/Developer/CommandLineTools/usr/bin/strip"
+			"value" : "/usr/bin/strip"
 		},
 		{
 			"name" : "CMAKE_UNAME",

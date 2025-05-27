@@ -4,7 +4,7 @@
 		"generator" : 
 		{
 			"multiConfig" : false,
-			"name" : "Unix Makefiles"
+			"name" : "Ninja"
 		},
 		"paths" : 
 		{
@@ -35,7 +35,7 @@
 			}
 		},
 		{
-			"jsonFile" : "cache-v2-25ec343b7b7d0d0d8946.json",
+			"jsonFile" : "cache-v2-67dafd3b898deaa0e7cf.json",
 			"kind" : "cache",
 			"version" : 
 			{
@@ -53,7 +53,7 @@
 			}
 		},
 		{
-			"jsonFile" : "toolchains-v1-b78da18268b22a45ddaf.json",
+			"jsonFile" : "toolchains-v1-3be25b57a221c8990055.json",
 			"kind" : "toolchains",
 			"version" : 
 			{
@@ -90,7 +90,7 @@
 				"responses" : 
 				[
 					{
-						"jsonFile" : "cache-v2-25ec343b7b7d0d0d8946.json",
+						"jsonFile" : "cache-v2-67dafd3b898deaa0e7cf.json",
 						"kind" : "cache",
 						"version" : 
 						{
@@ -108,7 +108,7 @@
 						}
 					},
 					{
-						"jsonFile" : "toolchains-v1-b78da18268b22a45ddaf.json",
+						"jsonFile" : "toolchains-v1-3be25b57a221c8990055.json",
 						"kind" : "toolchains",
 						"version" : 
 						{

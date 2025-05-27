@@ -138,14 +138,26 @@ uint8_t checkParity(uint8_t value) {
 }
 
 // returns 1 if there is a carry and returns 0 if there isn't
+/*
 uint8_t checkCarry(uint16_t value) {
     return (value > 0xff);
 }
+*/
+
+uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
+    if (isSubtraction) { // does a check if there is a borrow as the value will overflow
+        return (result > 0xFF);
+    }
+    else { // if we're adding then we check if the 9th bit is positive and so there was a
+        return (result & 0x100);
+    }
+}
+
 
 // CHECK FLAGS -- function to set the flags for different groups of opcodes
 
 // checks and then sets specific flags depending on the binary value given by flagMask
-void checkFlags(State *state, uint16_t value, uint8_t flagMask) {
+void checkFlags(State *state, uint16_t value, uint8_t flagMask, uint8_t isSubtraction) {
 
     if (flagMask & Z_FLAG) {
         state->cc.z = checkZero(value);
@@ -157,7 +169,7 @@ void checkFlags(State *state, uint16_t value, uint8_t flagMask) {
         state->cc.p = checkParity(value);
     }
     if (flagMask & CY_FLAG) {
-        state->cc.cy = checkCarry(value);
+        state->cc.cy = checkCarry(value, isSubtraction);
     }
 }
 
@@ -295,49 +307,49 @@ uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte, uint16_
 
 void add(State *state, uint8_t value) {
     uint16_t data = (state -> a) + value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
 void adc(State *state, uint8_t value) {
     uint16_t data = (state -> a) + value + (state -> cc.cy);
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
 void sub(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 1);
     state -> a = (uint8_t)data;
 }
 
 void sbb(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value - (state -> cc.cy);
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 1);
     state -> a = (uint8_t)data;
 }
 
 void cmp(State *state, uint8_t value) {
     uint16_t data = (state -> a) - value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 1);
 }
 
 void ana(State *state, uint8_t value) {
     uint16_t data = (state -> a) & value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
 
 void ora(State *state, uint8_t value) {
     uint16_t data = (state -> a) | value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
 void xra(State *state, uint8_t value) {
     uint16_t data = (state -> a) ^ value;
-    checkFlags(state, data, ALL_FLAGS);
+    checkFlags(state, data, ALL_FLAGS, 0);
     state -> a = (uint8_t)data;
 }
 
@@ -356,7 +368,7 @@ void inx(State *state, uint16_t *value) {
 
 void inr(State *state, uint8_t *value) {
     uint8_t result = *value + 1;
-    checkFlags(state, result, INCREMENT_FLAGS);
+    checkFlags(state, result, INCREMENT_FLAGS, 0);
     *value = result; // discards the first 8 bits
 }
 
@@ -375,7 +387,7 @@ void dcx(State *state, uint16_t *value) {
 
 void dcr(State *state, uint8_t *value) {
     uint8_t result = *value - 1;
-    checkFlags(state, result, INCREMENT_FLAGS);
+    checkFlags(state, result, INCREMENT_FLAGS, 0);
     *value = result; // discards the first 8 bits
 };
 
