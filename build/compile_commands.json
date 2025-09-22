@@ -1,14 +1,8 @@
 [
 {
   "directory": "/home/pranay/Documents/emulation/8080/build",
-  "command": "/usr/bin/gcc  -I/home/pranay/Documents/emulation/8080/. -g -std=gnu11 -o CMakeFiles/8080.dir/cpu.c.o -c /home/pranay/Documents/emulation/8080/cpu.c",
+  "command": "/usr/bin/clang   -g -o CMakeFiles/cpu.dir/cpu.c.o -c /home/pranay/Documents/emulation/8080/cpu.c",
   "file": "/home/pranay/Documents/emulation/8080/cpu.c",
-  "output": "CMakeFiles/8080.dir/cpu.c.o"
-},
-{
-  "directory": "/home/pranay/Documents/emulation/8080/build",
-  "command": "/usr/bin/gcc  -I/home/pranay/Documents/emulation/8080/. -g -std=gnu11 -o CMakeFiles/8080.dir/disassembler.c.o -c /home/pranay/Documents/emulation/8080/disassembler.c",
-  "file": "/home/pranay/Documents/emulation/8080/disassembler.c",
-  "output": "CMakeFiles/8080.dir/disassembler.c.o"
+  "output": "CMakeFiles/cpu.dir/cpu.c.o"
 }
 ]

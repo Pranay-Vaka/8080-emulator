@@ -93,3 +93,44 @@ Update: Finally completed the instructions until 0x3f.
 
 ### Thoughts
 Finished all the arithmetic functions
+
+## Date: 2025-01-05
+
+### Thoughts
+Finished all the opcodes until 0xff (YAY). I left certain instructions like the hardware input and
+output opcodes so that I can write the code for them when i understand how to read the rom and also
+how to output to the display.
+
+## Date: 2025-02-09
+
+### Thoughts
+Wrote some dummy functions for the hardware IN (0xDB) and OUT (0xD3) for now. This is just to check if
+the program is working
+
+## Date: 2025-02-09
+
+### Thoughts
+Made the code to load the game into memory, setup the state machine and iterate over the code. It seems
+to be iterating over all the instructions, but is not updating the registers. Will fix this next time
+
+## Date: 2025-05-17
+
+### Thoughts
+I am stupid. I outputed the state machine and the opcode at every iteration and then checked the
+opcode and the states. It is because i did not even load the game file into the states memory.
+
+## Date: 2025-05-18
+
+### Thoughts
+Loaded the game into the memory, and from the documentation it seems that the game starts from 0 in
+memory. When I run the code through the switch statement, the last opcodes that I see are all ones.
+I guess that is because it is going through all the memory. I don't really know
+
+## Date: 2025-05-23
+
+### Thoughts
+Note to self. Do not ever write large slews of code without writing unit tests. Another thing i
+learnt is using debuggers are actually amazing. I get an insight into the code without having to
+recompile all over again. Right now what I did was take a look into the pc and opcodes once the
+program ran to 8189. It's giving me weird stuff. But great practice for when I use debuggers
+properly
