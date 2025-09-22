@@ -1,7 +1,8 @@
 [
 {
-  "directory": "/Users/pranayvaka/Documents/emulation/8080-emulator/build",
-  "command": "/usr/bin/clang -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk -o CMakeFiles/cpu.dir/cpu.c.o -c /Users/pranayvaka/Documents/emulation/8080-emulator/cpu.c",
-  "file": "/Users/pranayvaka/Documents/emulation/8080-emulator/cpu.c"
+  "directory": "/home/pranay/Documents/emulation/8080/build",
+  "command": "/usr/bin/clang   -g -o CMakeFiles/cpu.dir/cpu.c.o -c /home/pranay/Documents/emulation/8080/cpu.c",
+  "file": "/home/pranay/Documents/emulation/8080/cpu.c",
+  "output": "CMakeFiles/cpu.dir/cpu.c.o"
 }
 ]

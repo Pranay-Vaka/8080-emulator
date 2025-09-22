@@ -7,3 +7,6 @@ TODO.txt
 cpu.out
 disassembler
 cmake-build-debug/
+build/
+invaders
+invadersBinary.txt
