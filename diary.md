@@ -134,3 +134,9 @@ learnt is using debuggers are actually amazing. I get an insight into the code w
 recompile all over again. Right now what I did was take a look into the pc and opcodes once the
 program ran to 8189. It's giving me weird stuff. But great practice for when I use debuggers
 properly
+
+## Date: 2025-09-24
+
+### Thoughts
+Going to work on fixing the main loop and also fixing the hardware read in and write out so that
+we can read user inputs and draw to the screen

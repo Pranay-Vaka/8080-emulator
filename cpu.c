@@ -1719,8 +1719,7 @@ int main() {
 
     printf("The opcode at 8189 in memory is %d\n", state->memory[8189]);
     // run the program loop
-    for (int i = 0; i < invadersGameMetadata.fileSize; i++) {
-
+    while (1) {
         Emulate(state);
     }
     printf("-----Emulated successfully-----\n");
