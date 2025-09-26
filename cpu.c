@@ -1717,7 +1717,6 @@ int main() {
     state->sp = 0x2400;
     state->interruptEnabled = 0;
 
-    printf("The opcode at 8189 in memory is %d\n", state->memory[8189]);
     // run the program loop
     while (1) {
         Emulate(state);

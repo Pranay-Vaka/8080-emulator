@@ -4,9 +4,7 @@ TODO.txt
 .vscode/
 .cache/
 .DS_Store/
-cpu.out
 disassembler
 cmake-build-debug/
 build/
-invaders
-invadersBinary.txt
+extras/
