@@ -1,3 +1,0 @@
-/home/pranay/Documents/emulation/8080/build/CMakeFiles/cpu.dir
-/home/pranay/Documents/emulation/8080/build/CMakeFiles/edit_cache.dir
-/home/pranay/Documents/emulation/8080/build/CMakeFiles/rebuild_cache.dir
