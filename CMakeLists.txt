@@ -5,4 +5,4 @@ set(SOURCES
     src/main.c
 )
 
-add_executable(emulation ${SOURCES})
+add_executable(target ${SOURCES})
