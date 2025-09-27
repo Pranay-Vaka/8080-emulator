@@ -253,8 +253,8 @@ void writeByteAtSP(State *state, uint8_t value) {
 uint8_t nextByte(State *state) { return readByte(state, state->pc++); }
 
 uint16_t nextWord(State *state) {
-    uint8_t highByte = nextByte(state);
     uint8_t lowByte = nextByte(state);
+    uint8_t highByte = nextByte(state);
 
     return combineBytesToWord(highByte, lowByte);
 }
