@@ -6,3 +6,10 @@ set(SOURCES
 )
 
 add_executable(target ${SOURCES})
+
+add_custom_command(
+    TARGET target POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/extras/test_binaries/invaders
+        $<TARGET_FILE_DIR:target>/invaders
+)
