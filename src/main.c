@@ -1412,7 +1412,7 @@ void Emulate(State *state) {
         break;
 
     case 0xce:
-        adc(state, nextWord(state));
+        adc(state, nextByte(state));
 
     case 0xcf:
         rst(state, 1);
@@ -1523,7 +1523,7 @@ void Emulate(State *state) {
         break;
 
     case 0xe6:
-        ana(state, nextWord(state));
+        ana(state, nextByte(state));
         break;
 
     case 0xe7:
@@ -1565,7 +1565,7 @@ void Emulate(State *state) {
         UnimplementedInstruction(state, 0xed);
 
     case 0xee:
-        xra(state, nextWord(state));
+        xra(state, nextByte(state));
         break;
 
     case 0xef:
@@ -1611,7 +1611,7 @@ void Emulate(State *state) {
     } break;
 
     case 0xf6:
-        ora(state, nextWord(state));
+        ora(state, nextByte(state));
         break;
 
     case 0xf7:
@@ -1644,7 +1644,7 @@ void Emulate(State *state) {
         UnimplementedInstruction(state, 0xfd);
 
     case 0xfe:
-        cmp(state, nextWord(state));
+        cmp(state, nextByte(state));
         break;
 
     case 0xff:
