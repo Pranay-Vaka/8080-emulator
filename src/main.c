@@ -930,9 +930,10 @@ void Emulate(State *state) {
         break;
 
     // lda addr
-    case 0x3a:
-        state->a = nextWord(state);
-        break;
+    case 0x3a: {
+        uint16_t addr = nextWord(state);
+        state->a = readByte(state, addr);
+    } break;
 
     case 0x3b:
         dcx(state, &state->sp);
