@@ -471,10 +471,9 @@ void pop(State *state, uint16_t *value) {
 
 // pushes register pair onto the stack
 void pushIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
-    stackArithmetic(state, -1);
-    *highByte = readByteAtSP(state);
-    stackArithmetic(state, -1);
-    *lowByte = readByteAtSP(state);
+    stackArithmetic(state, -2);
+    writeByte(state, state->sp + 1, *highByte);
+    writeByteAtSP(state, *lowByte);
 }
 
 void push(State *state, uint16_t value) {
