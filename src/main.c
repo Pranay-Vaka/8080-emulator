@@ -1580,13 +1580,12 @@ void Emulate(State *state) {
 
     // popPSW
     case 0xf1: {
-        setFlags(state, readByteAtSP(state));
+        state->a = readByteAtSP(state);
         stackArithmetic(state, 1);
-        writeByte(state, state->a, readByteAtSP(state));
+        uint8_t flags = readByteAtSP(state);
         stackArithmetic(state, 1);
-    }
-
-    break;
+        setFlags(state, flags);
+    } break;
 
     case 0xf2:
         jp(state, nextWord(state));
@@ -1604,11 +1603,8 @@ void Emulate(State *state) {
     // pushPSW
     case 0xf5: {
         uint8_t flags = getFlags(state);
-        stackArithmetic(state, -1);
-        // push flags
-        writeByteAtSP(state, flags);
-        stackArithmetic(state, -1);
-        // push accumulator
+        stackArithmetic(state, -2);
+        writeByte(state, state->sp + 1, flags);
         writeByteAtSP(state, state->a);
     } break;
 
