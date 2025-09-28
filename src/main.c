@@ -1435,9 +1435,8 @@ void Emulate(State *state) {
     // OUT instruction only works with external hardware
     case 0xd3: {
         uint8_t port = nextByte(state);
-        uint8_t value = readByte(state, state->a);
-        handle_OUT(port, value);
-    }
+        handle_OUT(port, state->a); // send register A to port
+    } break;
 
     case 0xd4:
         cnc(state, nextWord(state));
@@ -1470,10 +1469,8 @@ void Emulate(State *state) {
     // IN instruction only works with external hardware
     case 0xdb: {
         uint8_t port = nextByte(state);
-        // handle_IN returns dummy information for now
-        writeByte(state, state->a, handle_IN(port));
-        break;
-    }
+        state->a = handle_IN(port);
+    }break;
 
     case 0xdc:
         cc(state, nextWord(state));
