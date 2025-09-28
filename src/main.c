@@ -6,7 +6,7 @@
 
 // memory size
 #define MEMORY_SIZE 0x10000 // 65536 bytes
-#define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
+#define MAX_MEMORY_SIZE (MEMORY_SIZE - 1) // 65535 bytes
 
 // stack size
 #define STACK_TOP 0xFFFF
@@ -224,7 +224,7 @@ uint8_t getLowByte(uint16_t value) { return value & 0xff; }
 
 // returns the byte at a certain index in the memory of the state machine
 uint8_t readByte(State *state, uint16_t index) {
-    if (index >= MAX_MEMORY_SIZE) {
+    if (index > MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory read out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
     }
