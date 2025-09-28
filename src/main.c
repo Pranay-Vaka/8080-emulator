@@ -1403,6 +1403,7 @@ void Emulate(State *state) {
 
     case 0xcb:
         UnimplementedInstruction(state, 0xcb);
+        break;
 
     case 0xcc:
         cz(state, nextWord(state));
@@ -1414,6 +1415,7 @@ void Emulate(State *state) {
 
     case 0xce:
         adc(state, nextByte(state));
+        break;
 
     case 0xcf:
         rst(state, 1);
@@ -1461,6 +1463,7 @@ void Emulate(State *state) {
 
     case 0xd9:
         UnimplementedInstruction(state, 0xd9);
+        break;
 
     case 0xda:
         jc(state, nextWord(state));
@@ -1478,6 +1481,7 @@ void Emulate(State *state) {
 
     case 0xdd:
         UnimplementedInstruction(state, 0xdd);
+        break;
 
     case 0xde:
         sbb(state, nextWord(state));
@@ -1561,6 +1565,7 @@ void Emulate(State *state) {
 
     case 0xed:
         UnimplementedInstruction(state, 0xed);
+        break;
 
     case 0xee:
         xra(state, nextByte(state));
@@ -1640,6 +1645,7 @@ void Emulate(State *state) {
 
     case 0xfd:
         UnimplementedInstruction(state, 0xfd);
+        break;
 
     case 0xfe:
         cmp(state, nextByte(state));
