@@ -1713,7 +1713,7 @@ struct gameMetadata {
 int main(int argc, char** argv) {
 
     if (argc < 2) {
-        printf("Using %s as ROM", argv[0]);
+        printf("Usage: %s <romfile>\n", argv[0]);
         return 1;
     }
 
@@ -1722,20 +1722,15 @@ int main(int argc, char** argv) {
         perror("Failed to open ROM");
         return 1;
     }
-    // stores the invaders metadata
-    struct gameMetadata invadersGameMetadata;
-    invadersGameMetadata.fileSize = 8192;
-    invadersGameMetadata.filename = "invaders";
 
     // sets up the intial state machine
     State *state = setupStateMachine();
 
-    fread(invaders.filename, size_t size, size_t n, rom);
+    size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
+    fclose(rom);
 
-
-
-    loadRom(invadersGameMetadata.filename, invadersGameMetadata.fileSize,
-            state);
+    fread(state->memory, 1, MEMORY_SIZE, rom);
+    fclose(rom);
 
     // initialise the pointer values
     state->pc = 0x0000;
