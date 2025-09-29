@@ -1710,15 +1710,29 @@ struct gameMetadata {
     const char *filename;
 };
 
-int main() {
+int main(int argc, char** argv) {
 
-    // sets up the intial state machine
-    State *state = setupStateMachine();
+    if (argc < 2) {
+        printf("Using %s as ROM", argv[0]);
+        return 1;
+    }
 
+    FILE *rom = fopen(argv[1], "rb");
+    if (!rom) {
+        perror("Failed to open ROM");
+        return 1;
+    }
     // stores the invaders metadata
     struct gameMetadata invadersGameMetadata;
     invadersGameMetadata.fileSize = 8192;
     invadersGameMetadata.filename = "invaders";
+
+    // sets up the intial state machine
+    State *state = setupStateMachine();
+
+    fread(invaders.filename, size_t size, size_t n, rom);
+
+
 
     loadRom(invadersGameMetadata.filename, invadersGameMetadata.fileSize,
             state);
