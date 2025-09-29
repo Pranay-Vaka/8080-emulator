@@ -954,7 +954,7 @@ void Emulate(State *state) {
 
     // cmc
     case 0x3f:
-        state->cc.cy = ~(state->cc.cy);
+        state->cc.cy = !state->cc.cy;
         break;
 
     // mov opcodes
