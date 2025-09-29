@@ -152,10 +152,10 @@ uint8_t checkCarry(uint16_t value) {
 uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
     if (isSubtraction) { // does a check if there is a borrow as the value will
                          // overflow
-        return (result > 0xFF);
+        return (result > 0xFF) ? 1 : 0;
     } else { // if we're adding then we check if the 9th bit is positive and so
              // there was a
-        return (result & 0x100);
+        return (result & 0x100) ? 1 : 0;
     }
 }
 
@@ -684,6 +684,7 @@ void Emulate(State *state) {
 
     case 0x08:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x09:
@@ -724,6 +725,7 @@ void Emulate(State *state) {
 
     case 0x10:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x11:
@@ -760,6 +762,7 @@ void Emulate(State *state) {
 
     case 0x18:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x19:
@@ -796,6 +799,7 @@ void Emulate(State *state) {
 
     case 0x20:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x21:
@@ -842,6 +846,7 @@ void Emulate(State *state) {
 
     case 0x28:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x29:
@@ -875,6 +880,7 @@ void Emulate(State *state) {
 
     case 0x30:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x31:
@@ -922,6 +928,7 @@ void Emulate(State *state) {
 
     case 0x38:
         UnimplementedInstruction(state, 0x38);
+        outputStateValues(state);
         break;
 
     case 0x39:
@@ -1402,6 +1409,7 @@ void Emulate(State *state) {
 
     case 0xcb:
         UnimplementedInstruction(state, 0xcb);
+        outputStateValues(state);
         break;
 
     case 0xcc:
@@ -1462,6 +1470,7 @@ void Emulate(State *state) {
 
     case 0xd9:
         UnimplementedInstruction(state, 0xd9);
+        outputStateValues(state);
         break;
 
     case 0xda:
@@ -1480,6 +1489,7 @@ void Emulate(State *state) {
 
     case 0xdd:
         UnimplementedInstruction(state, 0xdd);
+        outputStateValues(state);
         break;
 
     case 0xde:
@@ -1564,6 +1574,7 @@ void Emulate(State *state) {
 
     case 0xed:
         UnimplementedInstruction(state, 0xed);
+        outputStateValues(state);
         break;
 
     case 0xee:
@@ -1640,6 +1651,7 @@ void Emulate(State *state) {
 
     case 0xfd:
         UnimplementedInstruction(state, 0xfd);
+        outputStateValues(state);
         break;
 
     case 0xfe:
