@@ -1729,8 +1729,10 @@ int main(int argc, char** argv) {
     size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
     fclose(rom);
 
-    fread(state->memory, 1, MEMORY_SIZE, rom);
-    fclose(rom);
+    if (bytesRead == 0) {
+        fprintf(stderr, "Failed to read ROM\n");
+        return 1;
+    }
 
     // initialise the pointer values
     state->pc = 0x0000;
