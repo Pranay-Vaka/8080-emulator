@@ -126,7 +126,7 @@ void UnimplementedInstruction(State *state, uint8_t opcode) {
 uint8_t checkZero(uint8_t value) { return ((value & 0xff) == 0); }
 
 // returns 1 if it is positive and 0 if negative
-uint8_t checkSign(uint8_t value) { return (value & 0xff) >> 7; }
+uint8_t checkSign(uint8_t value) { return value >> 7; }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
 uint8_t checkParity(uint8_t value) {
@@ -152,10 +152,9 @@ uint8_t checkCarry(uint16_t value) {
 uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
     if (isSubtraction) { // does a check if there is a borrow as the value will
                          // overflow
+        return (result & 0x100) != 0;
+    } else { 
         return (result > 0xFF) ? 1 : 0;
-    } else { // if we're adding then we check if the 9th bit is positive and so
-             // there was a
-        return (result & 0x100) ? 1 : 0;
     }
 }
 
@@ -234,11 +233,11 @@ uint8_t readByte(State *state, uint16_t index) {
 uint8_t readByteAtSP(State *state) { return readByte(state, state->sp); }
 
 // loading memory
-void loadMemory(State *state, uint8_t *memory) { state->memory = memory; }
+void loadMemory(State *state, uint8_t *memory) { memcpy(state->memory, memory, MEMORY_SIZE); }
 
 // inserts byte into a certain index in the memory array
 void writeByte(State *state, uint16_t index, uint8_t value) {
-    if (index >= MAX_MEMORY_SIZE) {
+    if (index > MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory write out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
     }
@@ -456,17 +455,12 @@ void popIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
 }
 
 // takes stack pointer and stores them into a register pair
-void pop(State *state, uint16_t *value) {
-    /*
-    uint8_t lowByte = readByteAtSP(state);
-    stackArithmetic(state, 1);
-    uint8_t highByte= readByteAtSP(state);
-    stackArithmetic(state, 1);
-    *value = combineBytesToWord(highByte, lowByte);
-    */
-
-    *value = readByteAtSP(state) | (readByte(state, state->sp + 1) << 8);
+uint8_t pop(State *state, uint16_t *value) {
+    uint8_t low = readByteAtSP(state);
+    uint8_t high = readByte(state, state->sp + 1);
+    *value = combineBytesToWord(high, low);
     stackArithmetic(state, 2);
+    return 0;
 }
 
 // pushes register pair onto the stack
