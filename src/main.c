@@ -42,17 +42,18 @@ State *setupStateMachine() {
     State *state = malloc(sizeof(State));
     if (state == NULL) {
         perror("Failed to allocate memory of the CPU");
+        exit(EXIT_FAILURE);
     }
     memset(state, 0, sizeof(State)); // fills the state machine with zeroes
 
     // Allocates memory for the emulated systems memory
-    state->memory = malloc(0x10000); // 64KB of memory
+    state->memory = malloc(MEMORY_SIZE); // 64KB of memory
     if (state->memory == NULL) {
         perror("Failed to allocate memory for emulated system");
         free(state);
         exit(EXIT_FAILURE);
     }
-    memset(state->memory, 0, 0x10000); // clears all 64KB of memory
+    memset(state->memory, 0, MEMORY_SIZE); // clears all 64KB of memory
 
     // Initialise the condition codes with 0
     state->cc.z = 0;
