@@ -6,7 +6,7 @@
 
 // memory size
 #define MEMORY_SIZE 0x10000 // 65536 bytes
-#define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
+#define MAX_MEMORY_SIZE (MEMORY_SIZE - 1) // 65535 bytes
 
 // stack size
 #define STACK_TOP 0xFFFF
@@ -42,17 +42,18 @@ State *setupStateMachine() {
     State *state = malloc(sizeof(State));
     if (state == NULL) {
         perror("Failed to allocate memory of the CPU");
+        exit(EXIT_FAILURE);
     }
     memset(state, 0, sizeof(State)); // fills the state machine with zeroes
 
     // Allocates memory for the emulated systems memory
-    state->memory = malloc(0x10000); // 64KB of memory
+    state->memory = malloc(MEMORY_SIZE); // 64KB of memory
     if (state->memory == NULL) {
         perror("Failed to allocate memory for emulated system");
         free(state);
         exit(EXIT_FAILURE);
     }
-    memset(state->memory, 0, 0x10000); // clears all 64KB of memory
+    memset(state->memory, 0, MEMORY_SIZE); // clears all 64KB of memory
 
     // Initialise the condition codes with 0
     state->cc.z = 0;
@@ -126,7 +127,7 @@ void UnimplementedInstruction(State *state, uint8_t opcode) {
 uint8_t checkZero(uint8_t value) { return ((value & 0xff) == 0); }
 
 // returns 1 if it is positive and 0 if negative
-uint8_t checkSign(uint8_t value) { return (value & 0xff) >> 7; }
+uint8_t checkSign(uint8_t value) { return value >> 7; }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
 uint8_t checkParity(uint8_t value) {
@@ -152,10 +153,9 @@ uint8_t checkCarry(uint16_t value) {
 uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
     if (isSubtraction) { // does a check if there is a borrow as the value will
                          // overflow
-        return (result > 0xFF);
-    } else { // if we're adding then we check if the 9th bit is positive and so
-             // there was a
-        return (result & 0x100);
+        return (result & 0x100) != 0;
+    } else { 
+        return (result > 0xFF) ? 1 : 0;
     }
 }
 
@@ -224,7 +224,7 @@ uint8_t getLowByte(uint16_t value) { return value & 0xff; }
 
 // returns the byte at a certain index in the memory of the state machine
 uint8_t readByte(State *state, uint16_t index) {
-    if (index >= MAX_MEMORY_SIZE) {
+    if (index > MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory read out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
     }
@@ -234,11 +234,11 @@ uint8_t readByte(State *state, uint16_t index) {
 uint8_t readByteAtSP(State *state) { return readByte(state, state->sp); }
 
 // loading memory
-void loadMemory(State *state, uint8_t *memory) { state->memory = memory; }
+void loadMemory(State *state, uint8_t *memory) { memcpy(state->memory, memory, MEMORY_SIZE); }
 
 // inserts byte into a certain index in the memory array
 void writeByte(State *state, uint16_t index, uint8_t value) {
-    if (index >= MAX_MEMORY_SIZE) {
+    if (index > MAX_MEMORY_SIZE) {
         fprintf(stderr, "Memory write out of bounds: 0x%04X\n", index);
         exit(EXIT_FAILURE);
     }
@@ -253,8 +253,8 @@ void writeByteAtSP(State *state, uint8_t value) {
 uint8_t nextByte(State *state) { return readByte(state, state->pc++); }
 
 uint16_t nextWord(State *state) {
-    uint8_t highByte = nextByte(state);
     uint8_t lowByte = nextByte(state);
+    uint8_t highByte = nextByte(state);
 
     return combineBytesToWord(highByte, lowByte);
 }
@@ -456,25 +456,19 @@ void popIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
 }
 
 // takes stack pointer and stores them into a register pair
-void pop(State *state, uint16_t *value) {
-    /*
-    uint8_t lowByte = readByteAtSP(state);
-    stackArithmetic(state, 1);
-    uint8_t highByte= readByteAtSP(state);
-    stackArithmetic(state, 1);
-    *value = combineBytesToWord(highByte, lowByte);
-    */
-
-    *value = readByteAtSP(state) | (readByte(state, state->sp + 1) << 8);
+uint8_t pop(State *state, uint16_t *value) {
+    uint8_t low = readByteAtSP(state);
+    uint8_t high = readByte(state, state->sp + 1);
+    *value = combineBytesToWord(high, low);
     stackArithmetic(state, 2);
+    return 0;
 }
 
 // pushes register pair onto the stack
 void pushIntoRegPair(State *state, uint8_t *highByte, uint8_t *lowByte) {
-    stackArithmetic(state, -1);
-    *highByte = readByteAtSP(state);
-    stackArithmetic(state, -1);
-    *lowByte = readByteAtSP(state);
+    stackArithmetic(state, -2);
+    writeByte(state, state->sp + 1, *highByte);
+    writeByteAtSP(state, *lowByte);
 }
 
 void push(State *state, uint16_t value) {
@@ -685,6 +679,7 @@ void Emulate(State *state) {
 
     case 0x08:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x09:
@@ -725,6 +720,7 @@ void Emulate(State *state) {
 
     case 0x10:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x11:
@@ -761,6 +757,7 @@ void Emulate(State *state) {
 
     case 0x18:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x19:
@@ -797,6 +794,7 @@ void Emulate(State *state) {
 
     case 0x20:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x21:
@@ -843,6 +841,7 @@ void Emulate(State *state) {
 
     case 0x28:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x29:
@@ -876,6 +875,7 @@ void Emulate(State *state) {
 
     case 0x30:
         UnimplementedInstruction(state, opcode);
+        outputStateValues(state);
         break;
 
     case 0x31:
@@ -923,6 +923,7 @@ void Emulate(State *state) {
 
     case 0x38:
         UnimplementedInstruction(state, 0x38);
+        outputStateValues(state);
         break;
 
     case 0x39:
@@ -930,9 +931,10 @@ void Emulate(State *state) {
         break;
 
     // lda addr
-    case 0x3a:
-        state->a = nextWord(state);
-        break;
+    case 0x3a: {
+        uint16_t addr = nextWord(state);
+        state->a = readByte(state, addr);
+    } break;
 
     case 0x3b:
         dcx(state, &state->sp);
@@ -954,7 +956,7 @@ void Emulate(State *state) {
 
     // cmc
     case 0x3f:
-        state->cc.cy = ~(state->cc.cy);
+        state->cc.cy = !state->cc.cy;
         break;
 
     // mov opcodes
@@ -1402,6 +1404,8 @@ void Emulate(State *state) {
 
     case 0xcb:
         UnimplementedInstruction(state, 0xcb);
+        outputStateValues(state);
+        break;
 
     case 0xcc:
         cz(state, nextWord(state));
@@ -1412,7 +1416,8 @@ void Emulate(State *state) {
         break;
 
     case 0xce:
-        adc(state, nextWord(state));
+        adc(state, nextByte(state));
+        break;
 
     case 0xcf:
         rst(state, 1);
@@ -1434,9 +1439,8 @@ void Emulate(State *state) {
     // OUT instruction only works with external hardware
     case 0xd3: {
         uint8_t port = nextByte(state);
-        uint8_t value = readByte(state, state->a);
-        handle_OUT(port, value);
-    }
+        handle_OUT(port, state->a); // send register A to port
+    } break;
 
     case 0xd4:
         cnc(state, nextWord(state));
@@ -1461,6 +1465,8 @@ void Emulate(State *state) {
 
     case 0xd9:
         UnimplementedInstruction(state, 0xd9);
+        outputStateValues(state);
+        break;
 
     case 0xda:
         jc(state, nextWord(state));
@@ -1469,10 +1475,8 @@ void Emulate(State *state) {
     // IN instruction only works with external hardware
     case 0xdb: {
         uint8_t port = nextByte(state);
-        // handle_IN returns dummy information for now
-        writeByte(state, state->a, handle_IN(port));
-        break;
-    }
+        state->a = handle_IN(port);
+    }break;
 
     case 0xdc:
         cc(state, nextWord(state));
@@ -1480,6 +1484,8 @@ void Emulate(State *state) {
 
     case 0xdd:
         UnimplementedInstruction(state, 0xdd);
+        outputStateValues(state);
+        break;
 
     case 0xde:
         sbb(state, nextWord(state));
@@ -1523,7 +1529,7 @@ void Emulate(State *state) {
         break;
 
     case 0xe6:
-        ana(state, nextWord(state));
+        ana(state, nextByte(state));
         break;
 
     case 0xe7:
@@ -1563,9 +1569,11 @@ void Emulate(State *state) {
 
     case 0xed:
         UnimplementedInstruction(state, 0xed);
+        outputStateValues(state);
+        break;
 
     case 0xee:
-        xra(state, nextWord(state));
+        xra(state, nextByte(state));
         break;
 
     case 0xef:
@@ -1578,13 +1586,12 @@ void Emulate(State *state) {
 
     // popPSW
     case 0xf1: {
-        setFlags(state, readByteAtSP(state));
+        state->a = readByteAtSP(state);
         stackArithmetic(state, 1);
-        writeByte(state, state->a, readByteAtSP(state));
+        uint8_t flags = readByteAtSP(state);
         stackArithmetic(state, 1);
-    }
-
-    break;
+        setFlags(state, flags);
+    } break;
 
     case 0xf2:
         jp(state, nextWord(state));
@@ -1602,16 +1609,13 @@ void Emulate(State *state) {
     // pushPSW
     case 0xf5: {
         uint8_t flags = getFlags(state);
-        stackArithmetic(state, -1);
-        // push flags
-        writeByteAtSP(state, flags);
-        stackArithmetic(state, -1);
-        // push accumulator
+        stackArithmetic(state, -2);
+        writeByte(state, state->sp + 1, flags);
         writeByteAtSP(state, state->a);
     } break;
 
     case 0xf6:
-        ora(state, nextWord(state));
+        ora(state, nextByte(state));
         break;
 
     case 0xf7:
@@ -1642,9 +1646,11 @@ void Emulate(State *state) {
 
     case 0xfd:
         UnimplementedInstruction(state, 0xfd);
+        outputStateValues(state);
+        break;
 
     case 0xfe:
-        cmp(state, nextWord(state));
+        cmp(state, nextByte(state));
         break;
 
     case 0xff:
@@ -1699,18 +1705,29 @@ struct gameMetadata {
     const char *filename;
 };
 
-int main() {
+int main(int argc, char** argv) {
+
+    if (argc < 2) {
+        printf("Usage: %s <romfile>\n", argv[0]);
+        return 1;
+    }
+
+    FILE *rom = fopen(argv[1], "rb");
+    if (!rom) {
+        perror("Failed to open ROM");
+        return 1;
+    }
 
     // sets up the intial state machine
     State *state = setupStateMachine();
 
-    // stores the invaders metadata
-    struct gameMetadata invadersGameMetadata;
-    invadersGameMetadata.fileSize = 8192;
-    invadersGameMetadata.filename = "invaders";
+    size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
+    fclose(rom);
 
-    loadRom(invadersGameMetadata.filename, invadersGameMetadata.fileSize,
-            state);
+    if (bytesRead == 0) {
+        fprintf(stderr, "Failed to read ROM\n");
+        return 1;
+    }
 
     // initialise the pointer values
     state->pc = 0x0000;
