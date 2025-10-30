@@ -831,13 +831,13 @@ void Emulate(State *state) {
     case 0x27:
         // lower nibble adjustment
         if (((state->a & 0xf) > 9) || state->cc.ac == 1) {
-            state->a = state->a + 6;
+            state->a += 6;
         }
 
         // higher nibble adjustment
         uint8_t higherNibble = (state->a & 0x0f) >> 4;
         if ((higherNibble > 9) || (state->cc.cy == 1)) {
-            state->a = state->a + 1;
+            state->a += 0x60;
         }
         break;
 
