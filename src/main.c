@@ -5,7 +5,7 @@
 #include <string.h>
 
 // memory size
-#define MEMORY_SIZE 0x10000 // 65536 bytes
+#define MEMORY_SIZE 0x10000               // 65536 bytes
 #define MAX_MEMORY_SIZE (MEMORY_SIZE - 1) // 65535 bytes
 
 // stack size
@@ -154,7 +154,7 @@ uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
     if (isSubtraction) { // does a check if there is a borrow as the value will
                          // overflow
         return (result & 0x100) != 0;
-    } else { 
+    } else {
         return (result > 0xFF) ? 1 : 0;
     }
 }
@@ -234,7 +234,9 @@ uint8_t readByte(State *state, uint16_t index) {
 uint8_t readByteAtSP(State *state) { return readByte(state, state->sp); }
 
 // loading memory
-void loadMemory(State *state, uint8_t *memory) { memcpy(state->memory, memory, MEMORY_SIZE); }
+void loadMemory(State *state, uint8_t *memory) {
+    memcpy(state->memory, memory, MEMORY_SIZE);
+}
 
 // inserts byte into a certain index in the memory array
 void writeByte(State *state, uint16_t index, uint8_t value) {
@@ -1476,7 +1478,7 @@ void Emulate(State *state) {
     case 0xdb: {
         uint8_t port = nextByte(state);
         state->a = handle_IN(port);
-    }break;
+    } break;
 
     case 0xdc:
         cc(state, nextWord(state));
@@ -1705,7 +1707,7 @@ struct gameMetadata {
     const char *filename;
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
 
     if (argc < 2) {
         printf("Usage: %s <romfile>\n", argv[0]);
