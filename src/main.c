@@ -519,8 +519,6 @@ void jmp(State *state, uint16_t addr) { state->pc = addr; }
 void conditionalJump(State *state, uint16_t addr, uint8_t condition) {
     if (condition) {
         jmp(state, addr);
-    } else {
-        state->pc += 3;
     }
 }
 
@@ -574,8 +572,6 @@ void call(State *state, uint16_t addr) {
 void conditionalCall(State *state, uint16_t addr, uint8_t condition) {
     if (condition) {
         call(state, addr);
-    } else {
-        state->pc += 3;
     }
 }
 
@@ -1490,7 +1486,7 @@ void Emulate(State *state) {
         break;
 
     case 0xde:
-        sbb(state, nextWord(state));
+        sbb(state, nextByte(state));
         break;
 
     case 0xdf:
