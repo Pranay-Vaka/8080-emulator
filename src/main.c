@@ -153,9 +153,9 @@ uint8_t checkCarry(uint16_t value) {
 uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
     if (isSubtraction) { // does a check if there is a borrow as the value will
                          // overflow
-        return (result & 0x100) != 0;
+        return (result > 0xff);
     } else {
-        return (result > 0xFF) ? 1 : 0;
+        return (result & 0x100) != 0;
     }
 }
 
@@ -1584,9 +1584,9 @@ void Emulate(State *state) {
 
     // popPSW
     case 0xf1: {
-        state->a = readByteAtSP(state);
-        stackArithmetic(state, 1);
         uint8_t flags = readByteAtSP(state);
+        stackArithmetic(state, 1);
+        state->a = readByteAtSP(state);
         stackArithmetic(state, 1);
         setFlags(state, flags);
     } break;
@@ -1608,8 +1608,8 @@ void Emulate(State *state) {
     case 0xf5: {
         uint8_t flags = getFlags(state);
         stackArithmetic(state, -2);
-        writeByte(state, state->sp + 1, flags);
-        writeByteAtSP(state, state->a);
+        writeByte(state, state->sp + 1, state->a);
+        writeByteAtSP(state, flags);
     } break;
 
     case 0xf6:
@@ -1672,8 +1672,7 @@ void loadRom(const char *filename, size_t fileSize, State *state) {
 
     // checks if the file exists
     if (file == NULL) {
-        printf("File returns null\n");
-        fclose(file);
+        perror("File returns null");
         exit(1);
     }
 
