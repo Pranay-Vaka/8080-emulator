@@ -47,8 +47,6 @@ State *setupStateMachine() {
     return state;
 }
 
-// HANDLE IN AND OUT
-
 void initialiseIO(State *state) {
     // bit meanings in order
     // coin, p2 start, p1 start, always 1, p1 shoot, p1 left, p1 right, unused
