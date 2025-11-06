@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 // memory size
 #define MEMORY_SIZE 0x10000               // 65536 bytes
@@ -21,6 +22,12 @@ typedef struct ConditionCodes {
     uint8_t pad : 3;
 } ConditionCodes;
 
+typedef struct IO {
+    uint16_t shift_register; // 16 bit hardware shift register
+    uint8_t shift_offset;    // shift amount (0-7 bits)
+    uint8_t port1;
+    uint8_t port2;
+} IO;
 typedef struct State {
     uint8_t a;
     uint8_t b;
@@ -34,6 +41,7 @@ typedef struct State {
     uint8_t *memory; // this is an array that stores integers.
     ConditionCodes cc;
     uint8_t interruptEnabled;
+    IO io;
 } State;
 
 State *setupStateMachine() {
@@ -622,18 +630,49 @@ void rst(State *state, uint8_t n) { call(state, 8 * n); }
 
 // HANDLE IN AND OUT
 
-void handle_OUT(uint8_t port, uint8_t value) {
-    printf("OUT instruction: Port 0x%02X, Value 0x%02X\n", port, value);
+void handle_OUT(State *state, uint8_t port, uint8_t value) {
+    switch (port) {
+    case 2:
+        state->io.shift_offset = value & 0x07;
+        break;
+    case 3:
+        // Sound effects for later
+        break;
+    case 4:
+        // Shift register works like fifo
+        state->io.shift_register =
+            (value << 8) | (state->io.shift_register >> 8);
+        break;
+    case 5:
+        // sound effects
+        break;
+    default:
+        fprintf(stderr, "Unhandled OUT port 0x%02X\n", port);
+        break;
+    }
 }
 
-uint8_t handle_IN(uint8_t port) {
-    printf("In instruction: Port 0x%02X requested\n", port);
-    return 0x00;
+uint8_t handle_IN(State *state, uint8_t port) {
+
+    switch (port) {
+    case 1:
+        return state->io.port1;
+    case 2:
+        return state->io.port2;
+    case 3: {
+        // read from the shift register
+        uint16_t v = state->io.shift_register >> (8 - state->io.shift_offset);
+        return v & 0xff;
+    }
+    default:
+        fprintf(stderr, "Unhandled IN port 0x%02X\n");
+        return 0;
+    }
 }
 
 static int hitCount = 0;
 
-void Emulate(State *state) {
+void EmulateInstruction(State *state) {
     unsigned char opcode =
         (state->memory[state->pc++]); // the opcode is indicated by the program
                                       // counter's index in memory
@@ -1438,7 +1477,7 @@ void Emulate(State *state) {
     // OUT instruction only works with external hardware
     case 0xd3: {
         uint8_t port = nextByte(state);
-        handle_OUT(port, state->a); // send register A to port
+        handle_OUT(state, port, state->a); // send register A to port
     } break;
 
     case 0xd4:
@@ -1474,7 +1513,7 @@ void Emulate(State *state) {
     // IN instruction only works with external hardware
     case 0xdb: {
         uint8_t port = nextByte(state);
-        state->a = handle_IN(port);
+        state->a = handle_IN(state, port);
     } break;
 
     case 0xdc:
@@ -1662,6 +1701,17 @@ void Emulate(State *state) {
     }
 }
 
+void initialiseIO(State *state) {
+    // bit meanings in order
+    // coin, p2 start, p1 start, always 1, p1 shoot, p1 left, p1 right, unused
+    state->io.port1 = 0b00001000;
+
+    // bit meanings in order
+    // dip-switch, tilt, p2 shoot, p2 left, p2 right, rest of the bits mean
+    // dip-switches for coin/bonus/lives
+    state->io.port2 = 0b00000000;
+}
+
 // loads memory into state memory
 void loadRom(const char *filename, size_t fileSize, State *state) {
 
@@ -1724,6 +1774,9 @@ int main(int argc, char **argv) {
     // sets up the intial state machine
     State *state = setupStateMachine();
 
+    // setup the IO
+    initialiseIO(state);
+
     size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
     fclose(rom);
 
@@ -1739,7 +1792,7 @@ int main(int argc, char **argv) {
 
     // run the program loop
     while (1) {
-        Emulate(state);
+        EmulateInstruction(state);
     }
     printf("-----Emulated successfully-----\n");
 }
