@@ -1664,8 +1664,13 @@ void Emulate(State *state) {
 
 // loads memory into state memory
 void loadRom(const char *filename, size_t fileSize, State *state) {
-    // contains the games binary
-    uint8_t gameBinary[fileSize];
+
+    // Store the game binary in heap allocated space
+    uint8_t *gameBinary = malloc(fileSize);
+    if (!gameBinary) {
+        perror("malloc failed");
+        exit(1);
+    }
 
     // opens the file
     FILE *file;
