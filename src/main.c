@@ -627,7 +627,7 @@ uint8_t handle_IN(State *state, uint8_t port) {
         return v & 0xff;
     }
     default:
-        fprintf(stderr, "Unhandled IN port 0x%02X\n");
+        fprintf(stderr, "Unhandled IN port 0x%02X\n", port);
         return 0;
     }
 }
