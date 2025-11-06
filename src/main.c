@@ -1,48 +1,10 @@
+#include "emulator.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-
-// memory size
-#define MEMORY_SIZE 0x10000               // 65536 bytes
-#define MAX_MEMORY_SIZE (MEMORY_SIZE - 1) // 65535 bytes
-
-// stack size
-#define STACK_TOP 0xFFFF
-#define STACK_BOTTOM 0x8000
-
-typedef struct ConditionCodes {
-    uint8_t z : 1;
-    uint8_t s : 1;
-    uint8_t p : 1;
-    uint8_t cy : 1;
-    uint8_t ac : 1; // space invaders doesn't use this flag
-    uint8_t pad : 3;
-} ConditionCodes;
-
-typedef struct IO {
-    uint16_t shift_register; // 16 bit hardware shift register
-    uint8_t shift_offset;    // shift amount (0-7 bits)
-    uint8_t port1;
-    uint8_t port2;
-} IO;
-typedef struct State {
-    uint8_t a;
-    uint8_t b;
-    uint8_t c;
-    uint8_t d;
-    uint8_t e;
-    uint8_t h;
-    uint8_t l;
-    uint16_t sp;
-    uint16_t pc;
-    uint8_t *memory; // this is an array that stores integers.
-    ConditionCodes cc;
-    uint8_t interruptEnabled;
-    IO io;
-} State;
 
 State *setupStateMachine() {
 

@@ -1,15 +1,21 @@
-cmake_minimum_required(VERSION 3.25.1)
+cmake_minimum_required(VERSION 3.25)
 project(Intel8080Emulator LANGUAGES C)
 set(CMAKE_BUILD_TYPE Debug)
 set(SOURCES
     src/main.c
+    src/cpu.c
+    src/memory.c
+    src/io.c
+    src/interrupts.c
 )
 
-add_executable(target ${SOURCES})
+add_executable(intel8080 ${SOURCES})
+
+target_include_directories(intel8080 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 add_custom_command(
-    TARGET target POST_BUILD
+    TARGET intel8080 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/extras/test_binaries/invaders
-        $<TARGET_FILE_DIR:target>/invaders
+        $<TARGET_FILE_DIR:intel8080>/invaders
 )
