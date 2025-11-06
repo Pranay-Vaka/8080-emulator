@@ -8,6 +8,25 @@
 #define MEMORY_SIZE 0x10000
 #define MAX_MEMORY_SIZE (MEMORY_SIZE - 1)
 
+#define S_FLAG (1 << 7)
+#define Z_FLAG (1 << 6)
+#define AC_FLAG (1 << 4)
+#define P_FLAG (1 << 2)
+#define CY_FLAG (1 << 0)
+#define INCREMENT_FLAGS                                                        \
+    (Z_FLAG | S_FLAG |                                                         \
+     P_FLAG) // used for only the increment and decrement functions
+#define ALL_FLAGS                                                              \
+    (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG) // used to set all the flags as true
+                                         // (for the arithmetic instructions)
+#define NON_CARRY_FLAGS                                                        \
+    (Z_FLAG | S_FLAG |                                                         \
+     P_FLAG) // used to set all the flags as true (for the logic instructions)
+#define PSW_FLAGS                                                              \
+    (Z_FLAG | S_FLAG | P_FLAG | CY_FLAG |                                      \
+     AC_FLAG) // used to set all the flags as true (for the arithmetic and logic
+              // instructions)
+
 // structs
 typedef struct ConditionCodes {
     uint8_t z : 1, s : 1, p : 1, cy : 1, ac : 1, pad : 3;
@@ -31,8 +50,8 @@ typedef struct State {
 
 // function prototypes
 State *setupStateMachine(void);
-void Emulate(State *state);
-void initializeIO(State *state);
+void EmulateInstruction(State *state);
+void initialiseIO(State *state);
 uint8_t handle_IN(State *state, uint8_t port);
 void handle_OUT(State *state, uint8_t port, uint8_t value);
 void loadRom(const char *filename, size_t fileSize, State *state);

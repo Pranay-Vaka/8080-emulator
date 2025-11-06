@@ -6,7 +6,12 @@ set(SOURCES
     src/cpu.c
     src/memory.c
     src/io.c
+    src/flags.c
     src/interrupts.c
+    src/cpu_arithmetic.c
+    src/cpu_control.c
+    src/cpu_data.c
+    src/debug.c
 )
 
 add_executable(intel8080 ${SOURCES})
