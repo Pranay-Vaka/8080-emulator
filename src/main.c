@@ -166,6 +166,9 @@ uint8_t checkCarry(uint16_t result, uint8_t isSubtraction) {
 void checkFlags(State *state, uint16_t value, uint8_t flagMask,
                 uint8_t isSubtraction) {
 
+    // Empties the top 8 bits
+    value &= 0xff;
+
     if (flagMask & Z_FLAG) {
         state->cc.z = checkZero(value);
     }
@@ -299,11 +302,9 @@ void writeMemoryAtHL(State *state, uint8_t value) {
 // adds values in two registers together and returns the 32 bit value
 uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte,
                       uint16_t value) {
-    uint16_t twoByteWord = combineBytesToWord(*highByte, *lowByte);
-    value = twoByteWord + value;
-
-    writeRegPairFromWord(state, highByte, lowByte, value);
-    return value;
+    uint32_t result = combineBytesToWord(*highByte, *lowByte) + value;
+    writeRegPairFromWord(state, highByte, lowByte, result & 0xffff);
+    return result;
 }
 
 // ARITHMETIC GROUP -- instructions for the arithmetic values in the isa
@@ -312,26 +313,26 @@ uint32_t addToRegPair(State *state, uint8_t *highByte, uint8_t *lowByte,
 
 void add(State *state, uint8_t value) {
     uint16_t data = (state->a) + value;
-    checkFlags(state, data, ALL_FLAGS, 0);
-    state->a = (uint8_t)data;
+    checkFlags(state, data & 0xff, ALL_FLAGS, 0);
+    state->a = (uint8_t)data & 0xff;
 }
 
 void adc(State *state, uint8_t value) {
     uint16_t data = (state->a) + value + (state->cc.cy);
-    checkFlags(state, data, ALL_FLAGS, 0);
-    state->a = (uint8_t)data;
+    checkFlags(state, data & 0xff, ALL_FLAGS, 0);
+    state->a = (uint8_t)data & 0xff;
 }
 
 void sub(State *state, uint8_t value) {
     uint16_t data = (state->a) - value;
-    checkFlags(state, data, ALL_FLAGS, 1);
-    state->a = (uint8_t)data;
+    checkFlags(state, data & 0xff, ALL_FLAGS, 1);
+    state->a = (uint8_t)data & 0xff;
 }
 
 void sbb(State *state, uint8_t value) {
     uint16_t data = (state->a) - value - (state->cc.cy);
-    checkFlags(state, data, ALL_FLAGS, 1);
-    state->a = (uint8_t)data;
+    checkFlags(state, data & 0xff, ALL_FLAGS, 1);
+    state->a = (uint8_t)data & 0xff;
 }
 
 void cmp(State *state, uint8_t value) {
