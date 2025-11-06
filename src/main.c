@@ -107,7 +107,7 @@ struct gameMetadata {
 int main(int argc, char **argv) {
 
     if (argc < 2) {
-        printf("Usage: %s <romfile>\n", argv[0]);
+        printf("Usage: %s romfile\n", argv[0]);
         return 1;
     }
 
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // sets up the intial state machine
+    // sets up the initial state machine
     State *state = setupStateMachine();
 
     // setup the IO
