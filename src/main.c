@@ -69,8 +69,7 @@ void loadRom(const char *filename, size_t fileSize, State *state) {
     }
 
     // opens the file
-    FILE *file;
-    file = fopen(filename, "rb");
+    FILE *file = fopen(filename, "rb");
 
     // checks if the file exists
     if (file == NULL) {
@@ -104,10 +103,10 @@ struct gameMetadata {
     const char *filename;
 };
 
-int main(int argc, char **argv) {
+int main(const int argc, char **argv) {
 
     if (argc < 2) {
-        printf("Usage: %s romfile\n", argv[0]);
+        printf("Usage: %s Rom file\n", argv[0]);
         return 1;
     }
 
@@ -120,7 +119,7 @@ int main(int argc, char **argv) {
     // sets up the initial state machine
     State *state = setupStateMachine();
 
-    // setup the IO
+    // set up the IO
     initialiseIO(state);
 
     size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
@@ -140,5 +139,4 @@ int main(int argc, char **argv) {
     while (1) {
         EmulateInstruction(state);
     }
-    printf("-----Emulated successfully-----\n");
 }

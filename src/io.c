@@ -1,7 +1,7 @@
 #include "emulator.h"
 #include <stdio.h>
 
-void handle_OUT(State *state, uint8_t port, uint8_t value) {
+void handle_OUT(State *state, const uint8_t port, const uint8_t value) {
     switch (port) {
     case 2:
         state->io.shift_offset = value & 0x07;
@@ -23,7 +23,7 @@ void handle_OUT(State *state, uint8_t port, uint8_t value) {
     }
 }
 
-uint8_t handle_IN(State *state, uint8_t port) {
+uint8_t handle_IN(const State *state, const uint8_t port) {
 
     switch (port) {
     case 1:

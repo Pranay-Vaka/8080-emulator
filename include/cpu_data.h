@@ -24,7 +24,7 @@ void dcr(State *state, uint8_t *value);
 
 // Double Add (DAD)
 void dad(State *state, uint16_t value);
-void dadRegPair(State *state, uint8_t *highByte, uint8_t *lowByte);
+void dadRegPair(State *state, const uint8_t *highByte, const uint8_t *lowByte);
 
 // Load Immediate (LXI)
 void lxiRegPair(State *state, uint8_t *highByte, uint8_t *lowByte,

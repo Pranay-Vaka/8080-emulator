@@ -52,8 +52,6 @@ typedef struct State {
 State *setupStateMachine(void);
 void EmulateInstruction(State *state);
 void initialiseIO(State *state);
-uint8_t handle_IN(State *state, uint8_t port);
-void handle_OUT(State *state, uint8_t port, uint8_t value);
 void loadRom(const char *filename, size_t fileSize, State *state);
 
 #endif

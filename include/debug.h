@@ -4,7 +4,7 @@
 #include "emulator.h"
 #include <stdint.h>
 
-void outputStateValues(State *state);
-void UnimplementedInstruction(State *state, uint8_t opcode);
+void outputStateValues(const State *state);
+void UnimplementedInstruction(const State *state, uint8_t opcode);
 
 #endif

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void outputStateValues(State *state) {
+void outputStateValues(const State *state) {
     /* print out processor state */
     printf("\tC=%d,P=%d,S=%d,Z=%d\n", state->cc.cy, state->cc.p, state->cc.s,
            state->cc.z);
@@ -13,7 +13,7 @@ void outputStateValues(State *state) {
 }
 
 // this is for any instruction that we have not yet implemented
-void UnimplementedInstruction(State *state, uint8_t opcode) {
+void UnimplementedInstruction(const State *state, uint8_t opcode) {
     // Error messages
     fprintf(stderr, "Error: Unimplemented instruction 0x%02x encountered\n",
             opcode);

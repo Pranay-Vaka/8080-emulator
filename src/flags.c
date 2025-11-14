@@ -4,10 +4,10 @@
 // this will get rid of the first 8 bits since they could affect the value
 
 // returns 1 if the value is equal to 0 and 0 if it is 1
-uint8_t checkZero(uint8_t value) { return ((value & 0xff) == 0); }
+uint8_t checkZero(const uint8_t value) { return ((value & 0xff) == 0); }
 
 // returns 1 if it is positive and 0 if negative
-uint8_t checkSign(uint8_t value) { return value >> 7; }
+uint8_t checkSign(const uint8_t value) { return value >> 7; }
 
 // returns 1 if there is even parity and 0 if there is odd parity.
 uint8_t checkParity(uint8_t value) {
@@ -65,7 +65,7 @@ void checkFlags(State *state, uint16_t value, uint8_t flagMask,
 
 // SET AND GET FLAGS
 
-uint8_t getFlags(State *state) {
+uint8_t getFlags(const State *state) {
     uint8_t flags = 0;
 
     flags |= (state->cc.s << 7);
