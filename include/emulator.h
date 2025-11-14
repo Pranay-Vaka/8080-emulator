@@ -50,7 +50,7 @@ typedef struct State {
 
 // function prototypes
 State *setupStateMachine(void);
-void EmulateInstruction(State *state);
+int EmulateInstruction(State *state);
 void initialiseIO(State *state);
 void loadRom(const char *filename, size_t fileSize, State *state);
 

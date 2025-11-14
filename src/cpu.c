@@ -12,7 +12,7 @@
 
 static int hitCount = 0;
 
-void EmulateInstruction(State *state) {
+int EmulateInstruction(State *state) {
     unsigned char opcode =
         (state->memory[state->pc++]); // the opcode is indicated by the program
                                       // counter's index in memory

@@ -122,7 +122,7 @@ int main(const int argc, char **argv) {
     // set up the IO
     initialiseIO(state);
 
-    size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
+    const size_t bytesRead = fread(state->memory, 1, MEMORY_SIZE, rom);
     fclose(rom);
 
     if (bytesRead == 0) {
