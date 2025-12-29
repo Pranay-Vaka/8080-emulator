@@ -59,7 +59,7 @@ void initialiseIO(State *state) {
 }
 
 // loads memory into state memory
-void loadRom(const char *filename, size_t fileSize, State *state) {
+void loadRom(const char *filename, const size_t fileSize, State *state) {
 
     // Store the game binary in heap allocated space
     uint8_t *gameBinary = malloc(fileSize);
