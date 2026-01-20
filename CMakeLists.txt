@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.25)
 project(Intel8080Emulator LANGUAGES C)
 set(CMAKE_BUILD_TYPE Debug)
 set(SOURCES
@@ -16,7 +16,7 @@ set(SOURCES
 
 add_executable(intel8080 ${SOURCES})
 
-target_include_directories(intel8080 PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(intel8082 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 add_custom_command(
     TARGET intel8080 POST_BUILD
